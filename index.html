@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Universo Narrado - Dashboard YT</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    .has-tooltip { position: relative; }
+    .has-tooltip .tip {
+      visibility: hidden; opacity: 0; pointer-events: none;
+      position: absolute; bottom: calc(100% + 8px); left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b; border: 1px solid #475569;
+      color: #cbd5e1; font-size: 12px; line-height: 1.5;
+      padding: 8px 12px; border-radius: 8px;
+      width: 250px; z-index: 99; transition: opacity 0.15s;
+    }
+    .has-tooltip .tip::after {
+      content: ''; position: absolute; top: 100%; left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent; border-top-color: #475569;
+    }
+    .has-tooltip:hover .tip { visibility: visible; opacity: 1; }
+
+    .ms-dropdown { position: relative; }
+    .ms-panel {
+      position: absolute; top: calc(100% + 4px); left: 0;
+      background: #1e293b; border: 1px solid #334155;
+      border-radius: 10px; padding: 8px; min-width: 210px;
+      z-index: 50; box-shadow: 0 10px 30px rgba(0,0,0,.5);
+    }
+    .ms-panel label {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 8px; border-radius: 6px;
+      cursor: pointer; font-size: 13px; color: #cbd5e1;
+      transition: background .1s;
+    }
+    .ms-panel label:hover { background: #334155; }
+    .ms-panel input[type=checkbox] { accent-color: #60a5fa; width: 14px; height: 14px; flex-shrink: 0; }
+
+    .ab-btn { color: #94a3b8; border-radius: 6px; padding: 4px 12px; font-size: 13px; transition: all .15s; }
+    .ab-btn:hover { color: #e2e8f0; background: #334155; }
+    .active-ab { background: #1d4ed8 !important; color: #fff !important; }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
+    .chart-wrap { position: relative; }
+    .chart-ph {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      color: #1e293b; font-size: 13px; pointer-events: none;
+    }
+    tr.data-row:hover { background: rgba(255,255,255,.03); }
+
+    /* ── Presentation mode ────────────────────────────────── */
+    body.presenting .chart-wrap { height: 420px !important; }
+
+    body.presenting #kpi-total,
+    body.presenting #kpi-views,
+    body.presenting #kpi-ret30,
+    body.presenting #kpi-ret-media,
+    body.presenting #kpi-ret-final {
+      font-size: 3rem !important; line-height: 1.05;
+    }
+    body.presenting #kpi-ctr-bruto-geral,
+    body.presenting #kpi-ctr-bruto-top80,
+    body.presenting #kpi-ctr-studio-geral,
+    body.presenting #kpi-ctr-studio-top80 {
+      font-size: 2.25rem !important; line-height: 1.05;
+    }
+    body.presenting .text-xs { font-size: 0.78rem; }
+    body.presenting h3        { font-size: 1rem !important; }
+
+    /* ── PDF print hints ──────────────────────────────────── */
+    @media print {
+      .chart-wrap, .bg-slate-800 { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+
+  <!-- LOADING -->
+  <div id="overlay-loading" class="fixed inset-0 z-50 bg-slate-900 flex flex-col items-center justify-center gap-4">
+    <div class="w-10 h-10 border-4 border-slate-700 border-t-blue-400 rounded-full animate-spin"></div>
+    <p class="text-slate-400 text-sm">Carregando dados da planilha…</p>
+  </div>
+
+  <!-- ERROR BANNER -->
+  <div id="banner-error" class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-50
+    bg-red-950 border border-red-700 text-red-200 rounded-xl px-5 py-3 text-sm
+    shadow-xl max-w-lg w-[calc(100%-2rem)]">
+    <strong>Erro:</strong> <span id="error-msg"></span>
+  </div>
+
+  <div id="main" class="max-w-[1600px] mx-auto px-4 sm:px-6 py-6">
+
+    <!-- HEADER -->
+    <header class="flex flex-wrap items-start justify-between gap-4 mb-6" id="header-section">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-white">Universo Narrado</h1>
+        <p class="text-slate-400 text-sm mt-0.5">Dashboard de Performance de Vídeos</p>
+        <p class="text-slate-600 text-xs mt-1" id="data-timestamp">—</p>
+      </div>
+      <div class="flex items-center gap-2 flex-wrap" id="header-buttons">
+        <button onclick="refreshData()" id="btn-refresh"
+          class="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700
+                 text-slate-300 hover:bg-slate-700 text-sm transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0
+                 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          Atualizar
+        </button>
+        <button onclick="togglePresentation()" id="btn-present"
+          class="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700
+                 text-slate-300 hover:bg-slate-700 text-sm transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11
+                 5l-5-5m5 5v-4m0 4h-4"/>
+          </svg>
+          Apresentar
+        </button>
+        <a href="https://docs.google.com/spreadsheets/d/1uUJE3fWsf5_LIHh9SR9Wt0rX7TR7lVnL40F_VVc3eZ8/edit?gid=1701283526#gid=1701283526"
+           target="_blank" rel="noopener"
+           class="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600
+                  text-white text-sm transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+          </svg>
+          Abrir Planilha
+        </a>
+      </div>
+    </header>
+
+    <!-- FILTERS -->
+    <section id="filters-section" class="bg-slate-800 border border-slate-700 rounded-xl p-4 mb-6">
+      <div class="flex flex-wrap items-center gap-3">
+        <!-- Canal -->
+        <div class="ms-dropdown" id="dd-canal">
+          <button onclick="toggleDD('canal')"
+            class="flex items-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-600
+                   rounded-lg text-sm border border-slate-600 transition-colors min-w-[150px] justify-between">
+            <span id="lbl-canal" class="truncate">Todos os Canais</span>
+            <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          <div id="panel-canal" class="ms-panel hidden">
+            <label>
+              <input type="checkbox" value="Principal" onchange="filterChanged('canal',this)">
+              <span class="w-2 h-2 rounded-full shrink-0" style="background:#60A5FA"></span>Principal
+            </label>
+            <label>
+              <input type="checkbox" value="Militares" onchange="filterChanged('canal',this)">
+              <span class="w-2 h-2 rounded-full shrink-0" style="background:#34D399"></span>Militares
+            </label>
+            <label>
+              <input type="checkbox" value="Superiores" onchange="filterChanged('canal',this)">
+              <span class="w-2 h-2 rounded-full shrink-0" style="background:#FBBF24"></span>Superiores
+            </label>
+          </div>
+        </div>
+
+        <!-- Trimestre -->
+        <div class="ms-dropdown" id="dd-trimestre">
+          <button onclick="toggleDD('trimestre')"
+            class="flex items-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-600
+                   rounded-lg text-sm border border-slate-600 transition-colors min-w-[170px] justify-between">
+            <span id="lbl-trimestre" class="truncate">Todos os Trimestres</span>
+            <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          <div id="panel-trimestre" class="ms-panel hidden"></div>
+        </div>
+
+        <!-- Tipo -->
+        <div class="ms-dropdown" id="dd-tipo">
+          <button onclick="toggleDD('tipo')"
+            class="flex items-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-600
+                   rounded-lg text-sm border border-slate-600 transition-colors min-w-[160px] justify-between">
+            <span id="lbl-tipo" class="truncate">Todos os Tipos</span>
+            <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          <div id="panel-tipo" class="ms-panel hidden" style="max-height:220px;overflow-y:auto"></div>
+        </div>
+
+        <div class="h-7 w-px bg-slate-600 hidden sm:block"></div>
+
+        <!-- A/B -->
+        <div class="flex items-center bg-slate-700 rounded-lg p-1 gap-0.5">
+          <span class="text-slate-500 text-xs px-2">A/B:</span>
+          <button onclick="setAB('all')" id="ab-all"  class="ab-btn active-ab">Todos</button>
+          <button onclick="setAB(true)"  id="ab-sim"  class="ab-btn">Sim</button>
+          <button onclick="setAB(false)" id="ab-nao"  class="ab-btn">Não</button>
+        </div>
+
+        <button onclick="clearFilters()"
+          class="text-xs text-slate-600 hover:text-slate-400 underline transition-colors ml-auto">
+          Limpar filtros
+        </button>
+      </div>
+      <p id="filter-summary" class="text-xs text-slate-600 mt-3"></p>
+    </section>
+
+    <!-- KPIs ROW 1 -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
+        <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">Total de Vídeos</p>
+        <p id="kpi-total" class="text-3xl font-bold text-white">—</p>
+        <p id="kpi-total-sub" class="text-xs text-slate-600 mt-1">—</p>
+      </div>
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
+        <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">Views Totais (24h)</p>
+        <p id="kpi-views" class="text-3xl font-bold text-white">—</p>
+        <p id="kpi-views-sub" class="text-xs text-slate-600 mt-1">—</p>
+      </div>
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-xs text-slate-500 font-medium uppercase tracking-wider">CTR Bruto</p>
+          <span class="has-tooltip cursor-help">
+            <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div class="tip"><strong>Top 80%:</strong> ordena os vídeos pela métrica (maior → menor),
+              descarta os 20% piores e calcula a média dos restantes. Revela o impacto
+              dos outliers negativos na média geral.</div>
+          </span>
+        </div>
+        <div class="flex items-end gap-4">
+          <div>
+            <p class="text-xs text-slate-600 mb-0.5">Geral</p>
+            <p id="kpi-ctr-bruto-geral" class="text-2xl font-bold text-white">—</p>
+          </div>
+          <div class="text-slate-700 mb-1">|</div>
+          <div>
+            <p class="text-xs text-blue-500 mb-0.5">Top 80%</p>
+            <p id="kpi-ctr-bruto-top80" class="text-2xl font-bold text-blue-400">—</p>
+          </div>
+        </div>
+      </div>
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-xs text-slate-500 font-medium uppercase tracking-wider">CTR Studio</p>
+          <span class="has-tooltip cursor-help">
+            <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div class="tip"><strong>Top 80%:</strong> ordena os vídeos pela métrica (maior → menor),
+              descarta os 20% piores e calcula a média dos restantes. Revela o impacto
+              dos outliers negativos na média geral.</div>
+          </span>
+        </div>
+        <div class="flex items-end gap-4">
+          <div>
+            <p class="text-xs text-slate-600 mb-0.5">Geral</p>
+            <p id="kpi-ctr-studio-geral" class="text-2xl font-bold text-white">—</p>
+          </div>
+          <div class="text-slate-700 mb-1">|</div>
+          <div>
+            <p class="text-xs text-blue-500 mb-0.5">Top 80%</p>
+            <p id="kpi-ctr-studio-top80" class="text-2xl font-bold text-blue-400">—</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPIs ROW 2 -->
+    <div class="grid grid-cols-3 gap-4 mb-6">
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
+        <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">Retenção 30s</p>
+        <p id="kpi-ret30" class="text-3xl font-bold text-emerald-400">—</p>
+        <p class="text-xs text-slate-600 mt-1">Média dos filtrados</p>
+      </div>
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
+        <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">Retenção Média</p>
+        <p id="kpi-ret-media" class="text-3xl font-bold text-emerald-400">—</p>
+        <p class="text-xs text-slate-600 mt-1">Média dos filtrados</p>
+      </div>
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
+        <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">Retenção Final</p>
+        <p id="kpi-ret-final" class="text-3xl font-bold text-emerald-400">—</p>
+        <p class="text-xs text-slate-600 mt-1">Média dos filtrados</p>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW 1 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
+        <h3 class="text-sm font-semibold text-slate-300 mb-3">Views Médio por Tipo de Vídeo</h3>
+        <div class="chart-wrap h-72">
+          <canvas id="chart-type"></canvas>
+          <div class="chart-ph">Carregando…</div>
+        </div>
+      </div>
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
+        <h3 class="text-sm font-semibold text-slate-300 mb-3">Views Médio por Dia da Semana</h3>
+        <div class="chart-wrap h-72">
+          <canvas id="chart-weekday"></canvas>
+          <div class="chart-ph">Carregando…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW 2 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
+        <h3 class="text-sm font-semibold text-slate-300 mb-3">Views Médio por Horário</h3>
+        <div class="chart-wrap h-72">
+          <canvas id="chart-hour"></canvas>
+          <div class="chart-ph">Carregando…</div>
+        </div>
+      </div>
+      <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
+        <h3 class="text-sm font-semibold text-slate-300 mb-3">Teste A/B — CTR e Retenção</h3>
+        <div class="chart-wrap h-72">
+          <canvas id="chart-ab"></canvas>
+          <div class="chart-ph" id="ph-ab">Carregando…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIMELINE -->
+    <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 mb-4">
+      <h3 class="text-sm font-semibold text-slate-300 mb-3">Views ao Longo do Tempo</h3>
+      <div class="chart-wrap h-80">
+        <canvas id="chart-timeline"></canvas>
+        <div class="chart-ph">Carregando…</div>
+      </div>
+    </div>
+
+    <!-- FUNNEL -->
+    <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 mb-6">
+      <div class="flex items-center gap-2 mb-3">
+        <h3 class="text-sm font-semibold text-slate-300">Funil de Conversão</h3>
+        <span class="text-xs text-slate-600">(soma dos vídeos filtrados)</span>
+      </div>
+      <div class="chart-wrap h-52">
+        <canvas id="chart-funnel"></canvas>
+        <div class="chart-ph">Carregando…</div>
+      </div>
+    </div>
+
+    <!-- TOP 10 TABLE -->
+    <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 mb-6">
+      <h3 class="text-sm font-semibold text-slate-300 mb-4">Top 10 Vídeos por Views</h3>
+      <div id="table-top10" class="overflow-x-auto">
+        <p class="text-slate-600 text-sm">Carregando…</p>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+
+  <script>
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  CONFIG
+  // ═══════════════════════════════════════════════════════════════════════════
+  const API_URL = 'https://script.google.com/macros/s/AKfycbz45SsGps__6mDqPXETiTa4h57_Ss_mXYToUeIs_LnzPdSi8djmTNwkxKlm34KbMNnK/exec';
+
+  const CH_COLORS    = { Principal:'#60A5FA', Militares:'#34D399', Superiores:'#FBBF24' };
+  const WEEKDAY_ORD  = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  STATE
+  // ═══════════════════════════════════════════════════════════════════════════
+  let allVideos = [];
+  let filters   = { channels: new Set(), quarters: new Set(), videoTypes: new Set(), abTest: 'all' };
+  let presentationMode = false;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  FETCH
+  // ═══════════════════════════════════════════════════════════════════════════
+  async function fetchData() {
+    setLoading(true); hideBanner();
+    try {
+      const res  = await fetch(API_URL + '?t=' + Date.now());
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      allVideos = (data.videos || []).map(v => ({
+        ...v,
+        publishDate: v.publishDate ? new Date(v.publishDate) : null,
+        videoType: v.videoType ? v.videoType.trim().replace(/\s+/g, ' ') : v.videoType,
+      }));
+      setText('data-timestamp', 'Atualizado em ' + new Date(data.timestamp).toLocaleString('pt-BR'));
+      buildDynamicFilters();
+      render();
+    } catch (err) {
+      showBanner(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function refreshData() {
+    const btn = document.getElementById('btn-refresh');
+    btn.disabled = true; btn.textContent = 'Atualizando…';
+    await fetchData();
+    btn.disabled = false;
+    btn.innerHTML = '<svg class="w-4 h-4 inline mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Atualizar';
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  FILTERS
+  // ═══════════════════════════════════════════════════════════════════════════
+  function buildDynamicFilters() {
+    const quarters = [...new Set(allVideos.map(v => v.quarter))].sort();
+    const types    = [...new Set(allVideos.map(v => v.videoType).filter(Boolean))].sort();
+    fillPanel('panel-trimestre', 'trimestre', quarters);
+    fillPanel('panel-tipo',      'tipo',      types);
+  }
+  function fillPanel(panelId, key, values) {
+    document.getElementById(panelId).innerHTML = values.map(v =>
+      `<label><input type="checkbox" value="${esc(v)}" onchange="filterChanged('${key}',this)">${esc(v)}</label>`
+    ).join('');
+  }
+
+  const KEY_MAP   = { canal:'channels', trimestre:'quarters', tipo:'videoTypes' };
+  const ALL_LABEL = { canal:'Todos os Canais', trimestre:'Todos os Trimestres', tipo:'Todos os Tipos' };
+
+  function toggleDD(key) {
+    const panel = document.getElementById('panel-' + key);
+    const open  = !panel.classList.contains('hidden');
+    closeAllDD();
+    if (!open) panel.classList.remove('hidden');
+  }
+  function closeAllDD() {
+    ['canal','trimestre','tipo'].forEach(k =>
+      document.getElementById('panel-' + k).classList.add('hidden'));
+  }
+  document.addEventListener('click', e => { if (!e.target.closest('.ms-dropdown')) closeAllDD(); });
+
+  function filterChanged(ddKey, cb) {
+    const set = filters[KEY_MAP[ddKey]];
+    cb.checked ? set.add(cb.value) : set.delete(cb.value);
+    syncLabel(ddKey); render();
+  }
+  function syncLabel(ddKey) {
+    const set = filters[KEY_MAP[ddKey]];
+    document.getElementById('lbl-' + ddKey).textContent =
+      set.size === 0 ? ALL_LABEL[ddKey] : set.size === 1 ? [...set][0] : set.size + ' selecionados';
+  }
+  function setAB(val) {
+    filters.abTest = val;
+    document.querySelectorAll('.ab-btn').forEach(b => b.classList.remove('active-ab'));
+    document.getElementById({ all:'ab-all', true:'ab-sim', false:'ab-nao' }[String(val)]).classList.add('active-ab');
+    render();
+  }
+  function clearFilters() {
+    filters = { channels: new Set(), quarters: new Set(), videoTypes: new Set(), abTest: 'all' };
+    document.querySelectorAll('.ms-panel input').forEach(cb => cb.checked = false);
+    ['canal','trimestre','tipo'].forEach(syncLabel);
+    setAB('all');
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  DERIVED
+  // ═══════════════════════════════════════════════════════════════════════════
+  function getFiltered() {
+    return allVideos.filter(v => {
+      if (filters.channels.size   && !filters.channels.has(v.channel))     return false;
+      if (filters.quarters.size   && !filters.quarters.has(v.quarter))     return false;
+      if (filters.videoTypes.size && !filters.videoTypes.has(v.videoType)) return false;
+      if (filters.abTest !== 'all' && v.abTest !== filters.abTest)         return false;
+      return true;
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  MATH
+  // ═══════════════════════════════════════════════════════════════════════════
+  function avg(arr) {
+    const v = arr.filter(x => x != null && !isNaN(x));
+    return v.length ? v.reduce((a,b) => a+b, 0) / v.length : null;
+  }
+  function top80avg(arr) {
+    const v = arr.filter(x => x != null && !isNaN(x)).sort((a,b) => b-a);
+    if (!v.length) return null;
+    return avg(v.slice(0, Math.max(1, Math.floor(v.length * 0.8))));
+  }
+  function sum(arr) { return arr.filter(x => x != null && !isNaN(x)).reduce((a,b) => a+b, 0); }
+  function groupAvg(vids, keyFn, valFn) {
+    const g = {};
+    for (const v of vids) {
+      const k = keyFn(v); if (k == null || k === '') continue;
+      const val = valFn(v); if (val == null || isNaN(val)) continue;
+      if (!g[k]) g[k] = { s:0, n:0 };
+      g[k].s += val; g[k].n++;
+    }
+    return Object.fromEntries(Object.entries(g).map(([k,v]) => [k, v.s/v.n]));
+  }
+
+  function calcKPIs(vids) {
+    return {
+      total:          vids.length,
+      totalViews:     sum(vids.map(v => v.views24h)),
+      avgViews:       avg(vids.map(v => v.views24h)),
+      ctrBrutoGeral:  avg(vids.map(v => v.ctrBruto)),
+      ctrBrutoTop80:  top80avg(vids.map(v => v.ctrBruto)),
+      ctrStudioGeral: avg(vids.map(v => v.ctrStudio)),
+      ctrStudioTop80: top80avg(vids.map(v => v.ctrStudio)),
+      ret30s:         avg(vids.map(v => v.retention30s)),
+      retMedia:       avg(vids.map(v => v.retentionMedia)),
+      retFinal:       avg(vids.map(v => v.retentionFinal)),
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  FORMATTERS
+  // ═══════════════════════════════════════════════════════════════════════════
+  function fmtN(n) {
+    if (n == null) return '—';
+    if (n >= 1e6) return (n/1e6).toLocaleString('pt-BR',{maximumFractionDigits:1})+'M';
+    if (n >= 1e3) return (n/1e3).toLocaleString('pt-BR',{maximumFractionDigits:1})+'K';
+    return Math.round(n).toLocaleString('pt-BR');
+  }
+  function fmtPct(f) {
+    if (f == null) return '—';
+    return (f*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
+  }
+  function fmtDateShort(d) {
+    return d.toLocaleDateString('pt-BR'); // DD/MM/YYYY
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  RENDER
+  // ═══════════════════════════════════════════════════════════════════════════
+  function render() {
+    const vids = getFiltered();
+    renderKPIs(vids);
+    renderSummary(vids);
+    renderTable(vids);
+    renderCharts(vids);
+  }
+
+  function renderKPIs(vids) {
+    const k = calcKPIs(vids);
+    setText('kpi-total',            k.total.toLocaleString('pt-BR'));
+    setText('kpi-total-sub',        'de ' + allVideos.length.toLocaleString('pt-BR') + ' no total');
+    setText('kpi-views',            fmtN(k.totalViews));
+    setText('kpi-views-sub',        k.avgViews ? 'Média: ' + fmtN(k.avgViews) + ' / vídeo' : '—');
+    setText('kpi-ctr-bruto-geral',  fmtPct(k.ctrBrutoGeral));
+    setText('kpi-ctr-bruto-top80',  fmtPct(k.ctrBrutoTop80));
+    setText('kpi-ctr-studio-geral', fmtPct(k.ctrStudioGeral));
+    setText('kpi-ctr-studio-top80', fmtPct(k.ctrStudioTop80));
+    setText('kpi-ret30',            fmtPct(k.ret30s));
+    setText('kpi-ret-media',        fmtPct(k.retMedia));
+    setText('kpi-ret-final',        fmtPct(k.retFinal));
+  }
+
+  function renderSummary(vids) {
+    const parts = [];
+    if (filters.channels.size)   parts.push([...filters.channels].join(', '));
+    if (filters.quarters.size)   parts.push([...filters.quarters].join(', '));
+    if (filters.videoTypes.size) parts.push([...filters.videoTypes].join(', '));
+    if (filters.abTest !== 'all') parts.push('A/B: ' + (filters.abTest ? 'Sim' : 'Não'));
+    setText('filter-summary', parts.length
+      ? 'Filtros: ' + parts.join(' · ')
+      : 'Mostrando todos os ' + vids.length + ' vídeos');
+  }
+
+  function renderTable(vids) {
+    const top10 = [...vids].filter(v => v.views24h != null)
+      .sort((a,b) => b.views24h - a.views24h).slice(0,10);
+    if (!top10.length) {
+      document.getElementById('table-top10').innerHTML =
+        '<p class="text-slate-600 text-sm py-4">Nenhum vídeo com os filtros atuais.</p>';
+      return;
+    }
+    const rows = top10.map((v, i) => `
+      <tr class="data-row border-t border-slate-700/60">
+        <td class="py-3 px-3 text-slate-500 text-sm">${i+1}</td>
+        <td class="py-3 px-3 max-w-xs">
+          ${v.url
+            ? `<a href="${esc(v.url)}" target="_blank" rel="noopener"
+                 class="text-blue-400 hover:text-blue-300 underline text-sm block truncate"
+                 title="${esc(v.title)}">${esc(v.title)||'Ver vídeo'}</a>`
+            : `<span class="text-slate-300 text-sm block truncate">${esc(v.title)}</span>`}
+        </td>
+        <td class="py-3 px-3 whitespace-nowrap">
+          <span class="text-xs px-2 py-0.5 rounded-full font-medium"
+            style="background:${CH_COLORS[v.channel]}22;color:${CH_COLORS[v.channel]}">
+            ${esc(v.channel)}</span>
+        </td>
+        <td class="py-3 px-3 text-slate-400 text-xs whitespace-nowrap">${esc(v.videoType||'—')}</td>
+        <td class="py-3 px-3 text-right font-semibold text-white tabular-nums whitespace-nowrap">${fmtN(v.views24h)}</td>
+        <td class="py-3 px-3 text-right text-slate-400 text-sm tabular-nums whitespace-nowrap">${fmtPct(v.ctrBruto)}</td>
+        <td class="py-3 px-3 text-right text-slate-400 text-sm tabular-nums whitespace-nowrap">${fmtPct(v.ctrStudio)}</td>
+        <td class="py-3 px-3 text-right text-slate-400 text-sm tabular-nums whitespace-nowrap">${fmtPct(v.retentionFinal)}</td>
+      </tr>`).join('');
+    document.getElementById('table-top10').innerHTML = `
+      <table class="w-full text-left">
+        <thead><tr class="text-xs text-slate-600 uppercase tracking-wider">
+          <th class="pb-3 px-3">#</th><th class="pb-3 px-3">Título</th>
+          <th class="pb-3 px-3">Canal</th><th class="pb-3 px-3">Tipo</th>
+          <th class="pb-3 px-3 text-right">Views</th>
+          <th class="pb-3 px-3 text-right">CTR B</th>
+          <th class="pb-3 px-3 text-right">CTR S</th>
+          <th class="pb-3 px-3 text-right">Ret. Final</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  CHARTS — setup
+  // ═══════════════════════════════════════════════════════════════════════════
+  const CHARTS = {};
+
+  Chart.defaults.color         = '#64748b';
+  Chart.defaults.borderColor   = '#1e293b';
+  Chart.defaults.font.family   = 'system-ui, -apple-system, sans-serif';
+  Chart.defaults.font.size     = 12;
+
+  const TT = {                          // shared tooltip style
+    backgroundColor: '#0f172a',
+    titleColor: '#e2e8f0',
+    bodyColor:  '#94a3b8',
+    borderColor:'#334155',
+    borderWidth: 1,
+    padding: 10,
+    cornerRadius: 8,
+    displayColors: true,
+    boxPadding: 4,
+  };
+  const AX = {                          // shared axis style
+    ticks:  { color:'#475569', font:{ size:11 } },
+    grid:   { color:'#1e293b' },
+    border: { color:'#334155' },
+  };
+
+  function mkChart(id, config) {
+    if (CHARTS[id]) { CHARTS[id].destroy(); delete CHARTS[id]; }
+    const canvas = document.getElementById(id);
+    const ph = canvas.parentElement.querySelector('.chart-ph');
+    if (ph) ph.style.display = 'none';
+    CHARTS[id] = new Chart(canvas, config);
+  }
+
+  function renderCharts(vids) {
+    renderTypeChart(vids);
+    renderWeekdayChart(vids);
+    renderHourChart(vids);
+    renderABChart(vids);
+    renderTimelineChart(vids);
+    renderFunnelChart(vids);
+  }
+
+  // ─── 1. Views por Tipo ─────────────────────────────────────────────────────
+  function renderTypeChart(vids) {
+    const map     = groupAvg(vids, v => v.videoType || 'Sem tipo', v => v.views24h);
+    const entries = Object.entries(map).sort((a,b) => b[1]-a[1]).slice(0,12);
+    const labels  = entries.map(([k]) => k);
+    const data    = entries.map(([,v]) => Math.round(v));
+
+    mkChart('chart-type', {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          data,
+          backgroundColor: '#3b82f660',
+          borderColor: '#60a5fa',
+          borderWidth: 1,
+          borderRadius: 4,
+          borderSkipped: false,
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { ...TT, callbacks: { label: c => '  ' + fmtN(c.raw) + ' views médio' } },
+        },
+        scales: {
+          x: { ...AX, ticks: { ...AX.ticks, callback: v => fmtN(v) } },
+          y: { ...AX },
+        },
+      },
+    });
+  }
+
+  // ─── 2. Views por Dia ──────────────────────────────────────────────────────
+  function renderWeekdayChart(vids) {
+    const map    = groupAvg(vids, v => v.weekday, v => v.views24h);
+    const labels = WEEKDAY_ORD.filter(d => map[d] != null);
+    const data   = labels.map(d => Math.round(map[d]));
+
+    const palette = ['#6366f1','#3b82f6','#0ea5e9','#06b6d4','#10b981','#f59e0b','#f97316'];
+
+    mkChart('chart-weekday', {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          data,
+          backgroundColor: labels.map((_,i) => palette[i % palette.length] + '88'),
+          borderColor:     labels.map((_,i) => palette[i % palette.length]),
+          borderWidth: 1, borderRadius: 4, borderSkipped: false,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { ...TT, callbacks: { label: c => '  ' + fmtN(c.raw) + ' views médio' } },
+        },
+        scales: {
+          x: { ...AX },
+          y: { ...AX, ticks: { ...AX.ticks, callback: v => fmtN(v) } },
+        },
+      },
+    });
+  }
+
+  // ─── 3. Views por Horário ──────────────────────────────────────────────────
+  function renderHourChart(vids) {
+    const map     = groupAvg(vids, v => v.publishHour, v => v.views24h);
+    const entries = Object.entries(map).sort((a,b) => parseInt(a[0]) - parseInt(b[0]));
+
+    mkChart('chart-hour', {
+      type: 'bar',
+      data: {
+        labels: entries.map(([k]) => k),
+        datasets: [{
+          data: entries.map(([,v]) => Math.round(v)),
+          backgroundColor: '#8b5cf660',
+          borderColor: '#a78bfa',
+          borderWidth: 1, borderRadius: 4, borderSkipped: false,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { ...TT, callbacks: { label: c => '  ' + fmtN(c.raw) + ' views médio' } },
+        },
+        scales: {
+          x: { ...AX },
+          y: { ...AX, ticks: { ...AX.ticks, callback: v => fmtN(v) } },
+        },
+      },
+    });
+  }
+
+  // ─── 4. A/B Comparativo ────────────────────────────────────────────────────
+  function renderABChart(vids) {
+    const sim = vids.filter(v => v.abTest === true);
+    const nao = vids.filter(v => v.abTest === false);
+    const ph  = document.getElementById('ph-ab');
+
+    if (!sim.length && !nao.length) {
+      if (CHARTS['chart-ab']) { CHARTS['chart-ab'].destroy(); delete CHARTS['chart-ab']; }
+      if (ph) { ph.style.display = 'flex'; ph.textContent = 'Sem dados de A/B nos filtros atuais'; }
+      return;
+    }
+
+    const labels = ['CTR Bruto','CTR Studio','Ret. 30s','Ret. Média','Ret. Final'];
+    const fields = ['ctrBruto','ctrStudio','retention30s','retentionMedia','retentionFinal'];
+    const calcRow = g => fields.map(f => { const a = avg(g.map(v => v[f])); return a != null ? parseFloat((a*100).toFixed(2)) : null; });
+
+    const datasets = [];
+    if (sim.length) datasets.push({ label:'Com A/B ('+sim.length+')', data:calcRow(sim), backgroundColor:'#3b82f660', borderColor:'#60a5fa', borderWidth:1, borderRadius:3 });
+    if (nao.length) datasets.push({ label:'Sem A/B ('+nao.length+')', data:calcRow(nao), backgroundColor:'#f59e0b60', borderColor:'#fbbf24', borderWidth:1, borderRadius:3 });
+
+    mkChart('chart-ab', {
+      type: 'bar',
+      data: { labels, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, labels: { color:'#94a3b8', usePointStyle:true, pointStyleWidth:8, font:{size:11} } },
+          tooltip: { ...TT, callbacks: { label: c => '  ' + (c.raw?.toFixed(1) ?? '—') + '%' } },
+        },
+        scales: {
+          x: { ...AX },
+          y: { ...AX, ticks: { ...AX.ticks, callback: v => v + '%' } },
+        },
+      },
+    });
+  }
+
+  // ─── 5. Timeline ───────────────────────────────────────────────────────────
+  function renderTimelineChart(vids) {
+    const channels = ['Principal','Militares','Superiores'];
+
+    // Collect and sort all unique dates
+    const dateSet = new Set();
+    vids.forEach(v => { if (v.publishDate) dateSet.add(fmtDateShort(v.publishDate)); });
+    const allDates = [...dateSet].sort((a, b) => {
+      const p = s => { const [d,m,y] = s.split('/').map(Number); return new Date(y,m-1,d); };
+      return p(a) - p(b);
+    });
+
+    const activeChannels = channels.filter(ch => vids.some(v => v.channel === ch && v.publishDate));
+
+    const datasets = activeChannels.map(ch => {
+      const chMap = {};
+      vids.filter(v => v.channel === ch).forEach(v => {
+        if (!v.publishDate || v.views24h == null) return;
+        const d = fmtDateShort(v.publishDate);
+        if (!chMap[d]) chMap[d] = [];
+        chMap[d].push(v.views24h);
+      });
+      return {
+        label: ch,
+        data: allDates.map(d => {
+          const vals = chMap[d];
+          return vals ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length) : null;
+        }),
+        borderColor: CH_COLORS[ch],
+        backgroundColor: CH_COLORS[ch] + '18',
+        tension: 0.35, pointRadius: 3, pointHoverRadius: 6,
+        pointBackgroundColor: CH_COLORS[ch],
+        fill: false, spanGaps: false,
+      };
+    });
+
+    mkChart('chart-timeline', {
+      type: 'line',
+      data: { labels: allDates, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode:'index', intersect:false },
+        plugins: {
+          legend: { display: true, labels: { color:'#94a3b8', usePointStyle:true, pointStyleWidth:8, font:{size:12} } },
+          tooltip: {
+            ...TT,
+            callbacks: {
+              label: c => c.raw != null ? '  ' + c.dataset.label + ': ' + fmtN(c.raw) + ' views' : null,
+            },
+          },
+        },
+        scales: {
+          x: { ...AX, ticks: { ...AX.ticks, maxTicksLimit:14, maxRotation:45, minRotation:0 } },
+          y: { ...AX, ticks: { ...AX.ticks, callback: v => fmtN(v) } },
+        },
+      },
+    });
+  }
+
+  // ─── 6. Funil ──────────────────────────────────────────────────────────────
+  function renderFunnelChart(vids) {
+    const imp   = sum(vids.map(v => v.impressions));
+    const views = sum(vids.map(v => v.views24h));
+    const s30   = sum(vids.filter(v => v.retention30s  != null && v.views24h != null).map(v => Math.round(v.views24h * v.retention30s)));
+    const sfin  = sum(vids.filter(v => v.retentionFinal != null && v.views24h != null).map(v => Math.round(v.views24h * v.retentionFinal)));
+
+    const data   = [imp, views, s30, sfin];
+    const labels = ['Impressões','Views (24h)','Assistiram 30s','Assistiram até o fim'];
+    const colors = ['#6366f1','#3b82f6','#0ea5e9','#06b6d4'];
+    const ref    = imp || 1;
+    const pcts   = data.map(v => imp > 0 ? (v/ref*100).toFixed(1)+'%' : '—');
+
+    mkChart('chart-funnel', {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          data,
+          backgroundColor: colors.map(c => c + '99'),
+          borderColor: colors,
+          borderWidth: 1, borderRadius: 4, borderSkipped: false,
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            ...TT,
+            callbacks: {
+              label: c => {
+                const i = c.dataIndex;
+                return '  ' + fmtN(data[i]) + '   (' + pcts[i] + ' das impressões)';
+              },
+            },
+          },
+        },
+        scales: {
+          x: { ...AX, ticks: { ...AX.ticks, callback: v => fmtN(v) } },
+          y: { ...AX },
+        },
+      },
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  PRESENTATION MODE
+  // ═══════════════════════════════════════════════════════════════════════════
+  function togglePresentation() {
+    presentationMode = !presentationMode;
+    document.body.classList.toggle('presenting', presentationMode);
+    document.getElementById('filters-section').classList.toggle('hidden', presentationMode);
+
+    const btn = document.getElementById('btn-present');
+    btn.innerHTML = presentationMode
+      ? '✕ Sair'
+      : '<svg class="w-4 h-4 inline mr-1.5 align-text-bottom" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>Apresentar';
+
+    if (presentationMode) document.documentElement.requestFullscreen?.();
+    else document.exitFullscreen?.();
+
+    // Resize charts after layout settles
+    setTimeout(() => Object.values(CHARTS).forEach(c => c?.resize()), 350);
+  }
+  document.addEventListener('keydown', e => {
+    if ((e.key==='f'||e.key==='F') && !e.ctrlKey && !e.metaKey) togglePresentation();
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  EXPORT PDF  — html2canvas + jsPDF (sem re-layout, sem sobreposição)
+  // ═══════════════════════════════════════════════════════════════════════════
+  async function exportPDF() {
+    if (typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
+      alert('Bibliotecas não carregaram. Verifique a conexão e recarregue a página.');
+      return;
+    }
+
+    const filtersEl  = document.getElementById('filters-section');
+    const btnExport  = document.getElementById('btn-export');
+    const btnRefresh = document.getElementById('btn-refresh');
+    const btnPresent = document.getElementById('btn-present');
+    const filterWasHidden = filtersEl.classList.contains('hidden');
+
+    // Oculta chrome da UI
+    filtersEl.classList.add('hidden');
+    [btnExport, btnRefresh, btnPresent].forEach(b => b.style.visibility = 'hidden');
+
+    // Overlay de progresso
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.85);display:flex;align-items:center;justify-content:center;font-family:system-ui';
+    overlay.innerHTML = `
+      <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:32px 52px;text-align:center">
+        <div style="width:34px;height:34px;border:3px solid #334155;border-top-color:#60a5fa;
+                    border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 14px"></div>
+        <p style="color:#94a3b8;font-size:14px;margin:0">Capturando dashboard…</p>
+        <p id="pdf-step" style="color:#475569;font-size:12px;margin:6px 0 0">Aguarde</p>
+      </div>`;
+    document.body.appendChild(overlay);
+    const setStep = t => { const el = document.getElementById('pdf-step'); if (el) el.textContent = t; };
+
+    // Sobe ao topo para captura consistente
+    const scrollY = window.scrollY;
+    window.scrollTo(0, 0);
+    await new Promise(r => setTimeout(r, 300));
+
+    const element  = document.getElementById('main');
+    const filename = 'UN-Dashboard-' + new Date().toLocaleDateString('pt-BR').replace(/\//g,'-') + '.pdf';
+
+    try {
+      // ── Passo 1: captura data URLs dos canvases ANTES do clone ─────────────
+      // html2canvas clona o DOM mas canvases clonados ficam vazios; precisamos
+      // injetar a imagem renderizada no clone.
+      setStep('Lendo gráficos…');
+      const canvasMap = new Map();
+      element.querySelectorAll('canvas').forEach(c => {
+        if (!c.id) return;
+        try { canvasMap.set(c.id, c.toDataURL('image/png')); } catch(_) {}
+      });
+
+      // ── Passo 2: screenshot do elemento ────────────────────────────────────
+      setStep('Gerando imagem…');
+      const shot = await html2canvas(element, {
+        scale:           2,
+        useCORS:         true,
+        allowTaint:      true,
+        backgroundColor: '#0f172a',
+        scrollX:         0,
+        scrollY:         0,
+        windowWidth:     1400,
+        onclone: (doc) => {
+          // Substitui canvases clonados (vazios) por <img> com a captura real
+          doc.querySelectorAll('canvas').forEach(clone => {
+            const dataURL = canvasMap.get(clone.id);
+            if (!dataURL) return;
+            const img = doc.createElement('img');
+            img.src = dataURL;
+            img.style.cssText =
+              `width:${clone.offsetWidth}px;height:${clone.offsetHeight}px;display:block;max-width:none`;
+            clone.parentNode.replaceChild(img, clone);
+          });
+        },
+      });
+
+      // ── Passo 3: monta PDF ─────────────────────────────────────────────────
+      setStep('Montando PDF…');
+      const { jsPDF } = window.jspdf;
+
+      // A4 paisagem: 297 × 210 mm
+      const pageW = 297, pageH = 210, mg = 8;
+      const aw = pageW - 2*mg;  // 281 mm úteis de largura
+      const ah = pageH - 2*mg;  // 194 mm úteis de altura
+
+      const iw = shot.width;    // pixels
+      const ih = shot.height;
+
+      // mm por pixel (escala horizontal)
+      const mmPx  = aw / iw;
+      // altura total da imagem em mm
+      const totalMM = ih * mmPx;
+
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+      if (totalMM <= ah) {
+        // ── Cabe numa página — centraliza verticalmente ──────────────────────
+        const yOff = mg + (ah - totalMM) / 2;
+        pdf.addImage(shot.toDataURL('image/jpeg', 0.92), 'JPEG', mg, yOff, aw, totalMM);
+      } else {
+        // ── Múltiplas páginas: fatia a imagem pixel a pixel ─────────────────
+        // Cada página recebe exatamente ah mm de conteúdo.
+        // Como é uma imagem fatiada, nenhum elemento HTML é re-renderizado
+        // e gráficos nunca se sobrepõem.
+        const pxPerPage = ah / mmPx;   // pixels que cabem por página
+        let yPx = 0;
+        let first = true;
+
+        while (yPx < ih) {
+          if (!first) pdf.addPage();
+          first = false;
+
+          const slicePx = Math.min(pxPerPage, ih - yPx);
+          const sliceMM = slicePx * mmPx;
+
+          // Cria canvas temporário para o slice
+          const tmp = document.createElement('canvas');
+          tmp.width  = iw;
+          tmp.height = Math.ceil(slicePx);
+          const ctx  = tmp.getContext('2d');
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(0, 0, tmp.width, tmp.height);
+          ctx.drawImage(shot, 0, yPx, iw, tmp.height, 0, 0, iw, tmp.height);
+
+          pdf.addImage(tmp.toDataURL('image/jpeg', 0.92), 'JPEG', mg, mg, aw, sliceMM);
+          yPx += pxPerPage;
+        }
+      }
+
+      pdf.save(filename);
+
+    } catch (err) {
+      alert('Erro ao gerar PDF: ' + err.message);
+      console.error(err);
+    } finally {
+      window.scrollTo(0, scrollY);
+      document.body.removeChild(overlay);
+      if (!filterWasHidden && !presentationMode) filtersEl.classList.remove('hidden');
+      [btnExport, btnRefresh, btnPresent].forEach(b => b.style.visibility = '');
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  UI HELPERS
+  // ═══════════════════════════════════════════════════════════════════════════
+  function setText(id, txt) { const el = document.getElementById(id); if (el) el.textContent = txt; }
+  function setLoading(on)   { document.getElementById('overlay-loading').style.display = on ? 'flex' : 'none'; }
+  function showBanner(msg)  { setText('error-msg', msg); document.getElementById('banner-error').classList.remove('hidden'); }
+  function hideBanner()     { document.getElementById('banner-error').classList.add('hidden'); }
+  function esc(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  INIT
+  // ═══════════════════════════════════════════════════════════════════════════
+  fetchData();
+  </script>
+</body>
+</html>
