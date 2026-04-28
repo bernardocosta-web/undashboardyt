@@ -32,6 +32,7 @@
       position: absolute; top: calc(100% + 4px); left: 0;
       background: #1e293b; border: 1px solid #334155;
       border-radius: 10px; padding: 8px; min-width: 210px;
+      max-width: calc(100vw - 2rem);
       z-index: 50; box-shadow: 0 10px 30px rgba(0,0,0,.5);
     }
     .ms-panel label {
@@ -47,6 +48,9 @@
     .ab-btn:hover { color: #e2e8f0; background: #334155; }
     .active-ab { background: #1d4ed8 !important; color: #fff !important; }
 
+    html, body { overflow-x: hidden; max-width: 100%; }
+    *, *::before, *::after { box-sizing: border-box; }
+
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: #0f172a; }
     ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
@@ -59,7 +63,7 @@
     }
     tr.data-row:hover { background: rgba(255,255,255,.03); }
 
-    /* ── Presentation mode ────────────────────────────────── */
+    /* ââ Presentation mode ââââââââââââââââââââââââââââââââââ */
     body.presenting .chart-wrap { height: 420px !important; }
 
     body.presenting #kpi-total,
@@ -78,7 +82,7 @@
     body.presenting .text-xs { font-size: 0.78rem; }
     body.presenting h3        { font-size: 1rem !important; }
 
-    /* ── PDF print hints ──────────────────────────────────── */
+    /* ââ PDF print hints ââââââââââââââââââââââââââââââââââââ */
     @media print {
       .chart-wrap, .bg-slate-800 { page-break-inside: avoid; }
     }
@@ -89,7 +93,7 @@
   <!-- LOADING -->
   <div id="overlay-loading" class="fixed inset-0 z-50 bg-slate-900 flex flex-col items-center justify-center gap-4">
     <div class="w-10 h-10 border-4 border-slate-700 border-t-blue-400 rounded-full animate-spin"></div>
-    <p class="text-slate-400 text-sm">Carregando dados da planilha…</p>
+    <p class="text-slate-400 text-sm">Carregando dados da planilhaâ¦</p>
   </div>
 
   <!-- ERROR BANNER -->
@@ -105,8 +109,8 @@
     <header class="flex flex-wrap items-start justify-between gap-4 mb-6" id="header-section">
       <div>
         <h1 class="text-2xl font-bold tracking-tight text-white">Universo Narrado</h1>
-        <p class="text-slate-400 text-sm mt-0.5">Dashboard de Performance de Vídeos</p>
-        <p class="text-slate-600 text-xs mt-1" id="data-timestamp">—</p>
+        <p class="text-slate-400 text-sm mt-0.5">Dashboard de Performance de VÃ­deos</p>
+        <p class="text-slate-600 text-xs mt-1" id="data-timestamp">â</p>
       </div>
       <div class="flex items-center gap-2 flex-wrap" id="header-buttons">
         <button onclick="refreshData()" id="btn-refresh"
@@ -204,7 +208,7 @@
           <span class="text-slate-500 text-xs px-2">A/B:</span>
           <button onclick="setAB('all')" id="ab-all"  class="ab-btn active-ab">Todos</button>
           <button onclick="setAB(true)"  id="ab-sim"  class="ab-btn">Sim</button>
-          <button onclick="setAB(false)" id="ab-nao"  class="ab-btn">Não</button>
+          <button onclick="setAB(false)" id="ab-nao"  class="ab-btn">NÃ£o</button>
         </div>
 
         <button onclick="clearFilters()"
@@ -218,14 +222,14 @@
     <!-- KPIs ROW 1 -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
       <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
-        <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">Total de Vídeos</p>
-        <p id="kpi-total" class="text-3xl font-bold text-white">—</p>
-        <p id="kpi-total-sub" class="text-xs text-slate-600 mt-1">—</p>
+        <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">Total de VÃ­deos</p>
+        <p id="kpi-total" class="text-3xl font-bold text-white">â</p>
+        <p id="kpi-total-sub" class="text-xs text-slate-600 mt-1">â</p>
       </div>
       <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
         <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">Views Totais (24h)</p>
-        <p id="kpi-views" class="text-3xl font-bold text-white">—</p>
-        <p id="kpi-views-sub" class="text-xs text-slate-600 mt-1">—</p>
+        <p id="kpi-views" class="text-3xl font-bold text-white">â</p>
+        <p id="kpi-views-sub" class="text-xs text-slate-600 mt-1">â</p>
       </div>
       <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
         <div class="flex items-center justify-between mb-3">
@@ -235,20 +239,20 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
-            <div class="tip"><strong>Top 80%:</strong> ordena os vídeos pela métrica (maior → menor),
-              descarta os 20% piores e calcula a média dos restantes. Revela o impacto
-              dos outliers negativos na média geral.</div>
+            <div class="tip"><strong>Top 80%:</strong> ordena os vÃ­deos pela mÃ©trica (maior â menor),
+              descarta os 20% piores e calcula a mÃ©dia dos restantes. Revela o impacto
+              dos outliers negativos na mÃ©dia geral.</div>
           </span>
         </div>
         <div class="flex items-end gap-4">
           <div>
             <p class="text-xs text-slate-600 mb-0.5">Geral</p>
-            <p id="kpi-ctr-bruto-geral" class="text-2xl font-bold text-white">—</p>
+            <p id="kpi-ctr-bruto-geral" class="text-2xl font-bold text-white">â</p>
           </div>
           <div class="text-slate-700 mb-1">|</div>
           <div>
             <p class="text-xs text-blue-500 mb-0.5">Top 80%</p>
-            <p id="kpi-ctr-bruto-top80" class="text-2xl font-bold text-blue-400">—</p>
+            <p id="kpi-ctr-bruto-top80" class="text-2xl font-bold text-blue-400">â</p>
           </div>
         </div>
       </div>
@@ -260,20 +264,20 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
-            <div class="tip"><strong>Top 80%:</strong> ordena os vídeos pela métrica (maior → menor),
-              descarta os 20% piores e calcula a média dos restantes. Revela o impacto
-              dos outliers negativos na média geral.</div>
+            <div class="tip"><strong>Top 80%:</strong> ordena os vÃ­deos pela mÃ©trica (maior â menor),
+              descarta os 20% piores e calcula a mÃ©dia dos restantes. Revela o impacto
+              dos outliers negativos na mÃ©dia geral.</div>
           </span>
         </div>
         <div class="flex items-end gap-4">
           <div>
             <p class="text-xs text-slate-600 mb-0.5">Geral</p>
-            <p id="kpi-ctr-studio-geral" class="text-2xl font-bold text-white">—</p>
+            <p id="kpi-ctr-studio-geral" class="text-2xl font-bold text-white">â</p>
           </div>
           <div class="text-slate-700 mb-1">|</div>
           <div>
             <p class="text-xs text-blue-500 mb-0.5">Top 80%</p>
-            <p id="kpi-ctr-studio-top80" class="text-2xl font-bold text-blue-400">—</p>
+            <p id="kpi-ctr-studio-top80" class="text-2xl font-bold text-blue-400">â</p>
           </div>
         </div>
       </div>
@@ -282,36 +286,36 @@
     <!-- KPIs ROW 2 -->
     <div class="grid grid-cols-3 gap-4 mb-6">
       <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
-        <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">Retenção 30s</p>
-        <p id="kpi-ret30" class="text-3xl font-bold text-emerald-400">—</p>
-        <p class="text-xs text-slate-600 mt-1">Média dos filtrados</p>
+        <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">RetenÃ§Ã£o 30s</p>
+        <p id="kpi-ret30" class="text-3xl font-bold text-emerald-400">â</p>
+        <p class="text-xs text-slate-600 mt-1">MÃ©dia dos filtrados</p>
       </div>
       <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
-        <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">Retenção Média</p>
-        <p id="kpi-ret-media" class="text-3xl font-bold text-emerald-400">—</p>
-        <p class="text-xs text-slate-600 mt-1">Média dos filtrados</p>
+        <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">RetenÃ§Ã£o MÃ©dia</p>
+        <p id="kpi-ret-media" class="text-3xl font-bold text-emerald-400">â</p>
+        <p class="text-xs text-slate-600 mt-1">MÃ©dia dos filtrados</p>
       </div>
       <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
-        <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">Retenção Final</p>
-        <p id="kpi-ret-final" class="text-3xl font-bold text-emerald-400">—</p>
-        <p class="text-xs text-slate-600 mt-1">Média dos filtrados</p>
+        <p class="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">RetenÃ§Ã£o Final</p>
+        <p id="kpi-ret-final" class="text-3xl font-bold text-emerald-400">â</p>
+        <p class="text-xs text-slate-600 mt-1">MÃ©dia dos filtrados</p>
       </div>
     </div>
 
     <!-- CHARTS ROW 1 -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
       <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
-        <h3 class="text-sm font-semibold text-slate-300 mb-3">Views Médio por Tipo de Vídeo</h3>
+        <h3 class="text-sm font-semibold text-slate-300 mb-3">Views MÃ©dio por Tipo de VÃ­deo</h3>
         <div class="chart-wrap h-72">
           <canvas id="chart-type"></canvas>
-          <div class="chart-ph">Carregando…</div>
+          <div class="chart-ph">Carregandoâ¦</div>
         </div>
       </div>
       <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
-        <h3 class="text-sm font-semibold text-slate-300 mb-3">Views Médio por Dia da Semana</h3>
+        <h3 class="text-sm font-semibold text-slate-300 mb-3">Views MÃ©dio por Dia da Semana</h3>
         <div class="chart-wrap h-72">
           <canvas id="chart-weekday"></canvas>
-          <div class="chart-ph">Carregando…</div>
+          <div class="chart-ph">Carregandoâ¦</div>
         </div>
       </div>
     </div>
@@ -319,17 +323,17 @@
     <!-- CHARTS ROW 2 -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
       <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
-        <h3 class="text-sm font-semibold text-slate-300 mb-3">Views Médio por Horário</h3>
+        <h3 class="text-sm font-semibold text-slate-300 mb-3">Views MÃ©dio por HorÃ¡rio</h3>
         <div class="chart-wrap h-72">
           <canvas id="chart-hour"></canvas>
-          <div class="chart-ph">Carregando…</div>
+          <div class="chart-ph">Carregandoâ¦</div>
         </div>
       </div>
       <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
-        <h3 class="text-sm font-semibold text-slate-300 mb-3">Teste A/B — CTR e Retenção</h3>
+        <h3 class="text-sm font-semibold text-slate-300 mb-3">Teste A/B â CTR e RetenÃ§Ã£o</h3>
         <div class="chart-wrap h-72">
           <canvas id="chart-ab"></canvas>
-          <div class="chart-ph" id="ph-ab">Carregando…</div>
+          <div class="chart-ph" id="ph-ab">Carregandoâ¦</div>
         </div>
       </div>
     </div>
@@ -339,51 +343,51 @@
       <h3 class="text-sm font-semibold text-slate-300 mb-3">Views ao Longo do Tempo</h3>
       <div class="chart-wrap h-80">
         <canvas id="chart-timeline"></canvas>
-        <div class="chart-ph">Carregando…</div>
+        <div class="chart-ph">Carregandoâ¦</div>
       </div>
     </div>
 
     <!-- FUNNEL -->
     <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 mb-6">
       <div class="flex items-center gap-2 mb-3">
-        <h3 class="text-sm font-semibold text-slate-300">Funil de Conversão</h3>
-        <span class="text-xs text-slate-600">(soma dos vídeos filtrados)</span>
+        <h3 class="text-sm font-semibold text-slate-300">Funil de ConversÃ£o</h3>
+        <span class="text-xs text-slate-600">(soma dos vÃ­deos filtrados)</span>
       </div>
       <div class="chart-wrap h-52">
         <canvas id="chart-funnel"></canvas>
-        <div class="chart-ph">Carregando…</div>
+        <div class="chart-ph">Carregandoâ¦</div>
       </div>
     </div>
 
     <!-- TOP 10 TABLE -->
     <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 mb-6">
-      <h3 class="text-sm font-semibold text-slate-300 mb-4">Top 10 Vídeos por Views</h3>
+      <h3 class="text-sm font-semibold text-slate-300 mb-4">Top 10 VÃ­deos por Views</h3>
       <div id="table-top10" class="overflow-x-auto">
-        <p class="text-slate-600 text-sm">Carregando…</p>
+        <p class="text-slate-600 text-sm">Carregandoâ¦</p>
       </div>
     </div>
 
   </div><!-- /main -->
 
   <script>
-  // ═══════════════════════════════════════════════════════════════════════════
+  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   //  CONFIG
-  // ═══════════════════════════════════════════════════════════════════════════
+  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   const API_URL = 'https://script.google.com/macros/s/AKfycbz45SsGps__6mDqPXETiTa4h57_Ss_mXYToUeIs_LnzPdSi8djmTNwkxKlm34KbMNnK/exec';
 
   const CH_COLORS    = { Principal:'#60A5FA', Militares:'#34D399', Superiores:'#FBBF24' };
-  const WEEKDAY_ORD  = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+  const WEEKDAY_ORD  = ['Seg','Ter','Qua','Qui','Sex','SÃ¡b','Dom'];
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   //  STATE
-  // ═══════════════════════════════════════════════════════════════════════════
+  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   let allVideos = [];
   let filters   = { channels: new Set(), quarters: new Set(), videoTypes: new Set(), abTest: 'all' };
   let presentationMode = false;
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   //  FETCH
-  // ═══════════════════════════════════════════════════════════════════════════
+  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   async function fetchData() {
     setLoading(true); hideBanner();
     try {
@@ -408,15 +412,15 @@
 
   async function refreshData() {
     const btn = document.getElementById('btn-refresh');
-    btn.disabled = true; btn.textContent = 'Atualizando…';
+    btn.disabled = true; btn.textContent = 'Atualizandoâ¦';
     await fetchData();
     btn.disabled = false;
     btn.innerHTML = '<svg class="w-4 h-4 inline mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Atualizar';
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   //  FILTERS
-  // ═══════════════════════════════════════════════════════════════════════════
+  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   function buildDynamicFilters() {
     const quarters = [...new Set(allVideos.map(v => v.quarter))].sort();
     const types    = [...new Set(allVideos.map(v => v.videoType).filter(Boolean))].sort();
@@ -467,9 +471,9 @@
     setAB('all');
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   //  DERIVED
-  // ═══════════════════════════════════════════════════════════════════════════
+  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   function getFiltered() {
     return allVideos.filter(v => {
       if (filters.channels.size   && !filters.channels.has(v.channel))     return false;
@@ -480,9 +484,9 @@
     });
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   //  MATH
-  // ═══════════════════════════════════════════════════════════════════════════
+  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   function avg(arr) {
     const v = arr.filter(x => x != null && !isNaN(x));
     return v.length ? v.reduce((a,b) => a+b, 0) / v.length : null;
@@ -519,26 +523,26 @@
     };
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   //  FORMATTERS
-  // ═══════════════════════════════════════════════════════════════════════════
+  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   function fmtN(n) {
-    if (n == null) return '—';
+    if (n == null) return 'â';
     if (n >= 1e6) return (n/1e6).toLocaleString('pt-BR',{maximumFractionDigits:1})+'M';
     if (n >= 1e3) return (n/1e3).toLocaleString('pt-BR',{maximumFractionDigits:1})+'K';
     return Math.round(n).toLocaleString('pt-BR');
   }
   function fmtPct(f) {
-    if (f == null) return '—';
+    if (f == null) return 'â';
     return (f*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
   }
   function fmtDateShort(d) {
     return d.toLocaleDateString('pt-BR'); // DD/MM/YYYY
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   //  RENDER
-  // ═══════════════════════════════════════════════════════════════════════════
+  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   function render() {
     const vids = getFiltered();
     renderKPIs(vids);
@@ -552,7 +556,7 @@
     setText('kpi-total',            k.total.toLocaleString('pt-BR'));
     setText('kpi-total-sub',        'de ' + allVideos.length.toLocaleString('pt-BR') + ' no total');
     setText('kpi-views',            fmtN(k.totalViews));
-    setText('kpi-views-sub',        k.avgViews ? 'Média: ' + fmtN(k.avgViews) + ' / vídeo' : '—');
+    setText('kpi-views-sub',        k.avgViews ? 'MÃ©dia: ' + fmtN(k.avgViews) + ' / vÃ­deo' : 'â');
     setText('kpi-ctr-bruto-geral',  fmtPct(k.ctrBrutoGeral));
     setText('kpi-ctr-bruto-top80',  fmtPct(k.ctrBrutoTop80));
     setText('kpi-ctr-studio-geral', fmtPct(k.ctrStudioGeral));
@@ -567,10 +571,10 @@
     if (filters.channels.size)   parts.push([...filters.channels].join(', '));
     if (filters.quarters.size)   parts.push([...filters.quarters].join(', '));
     if (filters.videoTypes.size) parts.push([...filters.videoTypes].join(', '));
-    if (filters.abTest !== 'all') parts.push('A/B: ' + (filters.abTest ? 'Sim' : 'Não'));
+    if (filters.abTest !== 'all') parts.push('A/B: ' + (filters.abTest ? 'Sim' : 'NÃ£o'));
     setText('filter-summary', parts.length
-      ? 'Filtros: ' + parts.join(' · ')
-      : 'Mostrando todos os ' + vids.length + ' vídeos');
+      ? 'Filtros: ' + parts.join(' Â· ')
+      : 'Mostrando todos os ' + vids.length + ' vÃ­deos');
   }
 
   function renderTable(vids) {
@@ -578,7 +582,7 @@
       .sort((a,b) => b.views24h - a.views24h).slice(0,10);
     if (!top10.length) {
       document.getElementById('table-top10').innerHTML =
-        '<p class="text-slate-600 text-sm py-4">Nenhum vídeo com os filtros atuais.</p>';
+        '<p class="text-slate-600 text-sm py-4">Nenhum vÃ­deo com os filtros atuais.</p>';
       return;
     }
     const rows = top10.map((v, i) => `
@@ -588,7 +592,7 @@
           ${v.url
             ? `<a href="${esc(v.url)}" target="_blank" rel="noopener"
                  class="text-blue-400 hover:text-blue-300 underline text-sm block truncate"
-                 title="${esc(v.title)}">${esc(v.title)||'Ver vídeo'}</a>`
+                 title="${esc(v.title)}">${esc(v.title)}||'Ver vÃ­deo'}</a>`
             : `<span class="text-slate-300 text-sm block truncate">${esc(v.title)}</span>`}
         </td>
         <td class="py-3 px-3 whitespace-nowrap">
@@ -596,16 +600,16 @@
             style="background:${CH_COLORS[v.channel]}22;color:${CH_COLORS[v.channel]}">
             ${esc(v.channel)}</span>
         </td>
-        <td class="py-3 px-3 text-slate-400 text-xs whitespace-nowrap">${esc(v.videoType||'—')}</td>
+        <td class="py-3 px-3 text-slate-400 text-xs whitespace-nowrap">${esc(v.videoType||'â')}</td>
         <td class="py-3 px-3 text-right font-semibold text-white tabular-nums whitespace-nowrap">${fmtN(v.views24h)}</td>
-        <td class="py-3 px-3 text-right text-slate-400 text-sm tabular-nums whitespace-nowrap">${fmtPct(v.ctrBruto)}</td>
+        <td class="py-3 px-3 text-right text-slate-400 text-sm tabular-nums whitespace-nowrap">${fmtPct(f.ctrBruto)}</td>
         <td class="py-3 px-3 text-right text-slate-400 text-sm tabular-nums whitespace-nowrap">${fmtPct(v.ctrStudio)}</td>
         <td class="py-3 px-3 text-right text-slate-400 text-sm tabular-nums whitespace-nowrap">${fmtPct(v.retentionFinal)}</td>
       </tr>`).join('');
     document.getElementById('table-top10').innerHTML = `
       <table class="w-full text-left">
         <thead><tr class="text-xs text-slate-600 uppercase tracking-wider">
-          <th class="pb-3 px-3">#</th><th class="pb-3 px-3">Título</th>
+          <th class="pb-3 px-3">#</th><th class="pb-3 px-3">TÃ­tulo</th>
           <th class="pb-3 px-3">Canal</th><th class="pb-3 px-3">Tipo</th>
           <th class="pb-3 px-3 text-right">Views</th>
           <th class="pb-3 px-3 text-right">CTR B</th>
@@ -616,9 +620,9 @@
       </table>`;
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  //  CHARTS — setup
-  // ═══════════════════════════════════════════════════════════════════════════
+  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+  //  CHARTS â setup
+  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   const CHARTS = {};
 
   Chart.defaults.color         = '#64748b';
@@ -660,7 +664,7 @@
     renderFunnelChart(vids);
   }
 
-  // ─── 1. Views por Tipo ─────────────────────────────────────────────────────
+  // âââ 1. Views por Tipo ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   function renderTypeChart(vids) {
     const map     = groupAvg(vids, v => v.videoType || 'Sem tipo', v => v.views24h);
     const entries = Object.entries(map).sort((a,b) => b[1]-a[1]).slice(0,12);
@@ -681,11 +685,11 @@
         }]
       },
       options: {
-        indexAxis: 'y',
+        indexAxis: 'y', 
         responsive: true, maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
-          tooltip: { ...TT, callbacks: { label: c => '  ' + fmtN(c.raw) + ' views médio' } },
+          tooltip: { ...TT, callbacks: { label: c => '  ' + fmtN(c.raw) + ' views mÃ©dio' } },
         },
         scales: {
           x: { ...AX, ticks: { ...AX.ticks, callback: v => fmtN(v) } },
@@ -695,392 +699,254 @@
     });
   }
 
-  // ─── 2. Views por Dia ──────────────────────────────────────────────────────
+  // âââ 2. Views por Dia ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   function renderWeekdayChart(vids) {
     const map    = groupAvg(vids, v => v.weekday, v => v.views24h);
-    const labels = WEEKDAY_ORD.filter(d => map[d] != null);
-    const data   = labels.map(d => Math.round(map[d]));
+    const labels = WEEKDAY_ORD.fil\OX\ÙHOH[
+NÂÛÛÝ]HHX[ËX\
+OX]Ý[
+X\ÙJJNÂÛÛÝ[]HHÉÈÍÍIË	ÈÌØË	ÈÌXMYNIË	ÈÌ
+
+	Ë	ÈÌLNIË	ÈÙNYLË	ÈÙMÌÌM×NÂZÐÚ\
+	ØÚ\]ÙYZÙ^IËÂ\N	Ø\Ë]NÂX[Ë]\Ù]ÎÞÂ]KXÚÙÜÝ[ÛÛÜX[ËX\
 
-    const palette = ['#6366f1','#3b82f6','#0ea5e9','#06b6d4','#10b981','#f59e0b','#f97316'];
+ËJHO[]VÚH	H[]K[ÝH
+È	Î	ÊKÜ\ÛÛÜX[ËX\
 
-    mkChart('chart-weekday', {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [{
-          data,
-          backgroundColor: labels.map((_,i) => palette[i % palette.length] + '88'),
-          borderColor:     labels.map((_,i) => palette[i % palette.length]),
-          borderWidth: 1, borderRadius: 4, borderSkipped: false,
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: { ...TT, callbacks: { label: c => '  ' + fmtN(c.raw) + ' views médio' } },
-        },
-        scales: {
-          x: { ...AX },
-          y: { ...AX, ticks: { ...AX.ticks, callback: v => fmtN(v) } },
-        },
-      },
-    });
-  }
+ËJHO[]VÚH	H[]K[ÝJKÜ\ÚYKÜ\Y]\Î
+Ü\ÚÚ\Y[ÙKWBKÜ[ÛÎÂ\ÜÛÚ]NYKXZ[Z[\ÜXÝ][Î[ÙKYÚ[ÎÂYÙ[È\Ü^N[ÙHKÛÛ\ÈØ[XÚÜÎÈX[ÈO	È	È
+È]Ë]ÊH
+È	ÈY]ÜÈpêY[ÉÈHKKØØ[\ÎÂÈVKNÈVXÚÜÎÈVXÚÜËØ[XÚÎO]HHKKKJNÂBËÈ8¥ 8¥ 8¥ ËY]ÜÈÜÜ°è\[È8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ [Ý[Û[\Ý\Ú\
+YÊHÂÛÛÝX\HÜÝ\]ÊYËOX\ÚÝ\OY]ÜÌ
+NÂÛÛÝ[Y\ÈHØXÝ[Y\ÊX\
+KÛÜ
 
-  // ─── 3. Views por Horário ──────────────────────────────────────────────────
-  function renderHourChart(vids) {
-    const map     = groupAvg(vids, v => v.publishHour, v => v.views24h);
-    const entries = Object.entries(map).sort((a,b) => parseInt(a[0]) - parseInt(b[0]));
+KHO\ÙR[
+VÌJHH\ÙR[
+ÌJJNÂZÐÚ\
+	ØÚ\ZÝ\ËÂ\N	Ø\Ë]NÂX[Î[Y\ËX\
 
-    mkChart('chart-hour', {
-      type: 'bar',
-      data: {
-        labels: entries.map(([k]) => k),
-        datasets: [{
-          data: entries.map(([,v]) => Math.round(v)),
-          backgroundColor: '#8b5cf660',
-          borderColor: '#a78bfa',
-          borderWidth: 1, borderRadius: 4, borderSkipped: false,
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: { ...TT, callbacks: { label: c => '  ' + fmtN(c.raw) + ' views médio' } },
-        },
-        scales: {
-          x: { ...AX },
-          y: { ...AX, ticks: { ...AX.ticks, callback: v => fmtN(v) } },
-        },
-      },
-    });
-  }
+Ú×JHOÊK]\Ù]ÎÞÂ]N[Y\ËX\
 
-  // ─── 4. A/B Comparativo ────────────────────────────────────────────────────
-  function renderABChart(vids) {
-    const sim = vids.filter(v => v.abTest === true);
-    const nao = vids.filter(v => v.abTest === false);
-    const ph  = document.getElementById('ph-ab');
+ËJHOX]Ý[
+JKXÚÙÜÝ[ÛÛÜ	ÈÎXÙ	ËÜ\ÛÛÜ	ÈØMÎIËÜ\ÚYKÜ\Y]\Î
+Ü\ÚÚ\Y[ÙKWBKÜ[ÛÎÂ\ÜÛÚ]NYKXZ[Z[\ÜXÝ][Î[ÙKYÚ[ÎÂYÙ[È\Ü^N[ÙHKÛÛ\ÈØ[XÚÜÎÈX[ÈO	È	È
+È]Ë]ÊH
+È	ÈY]ÜÈpêY[ÉÈHKKØØ[\ÎÂÈVKNÈVXÚÜÎÈVXÚÜËØ[XÚÎO]HHKKKJNÂBËÈ8¥ 8¥ 8¥ 
+KÐÛÛ\\]]È8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ [Ý[Û[\PÚ\
+YÊHÂÛÛÝÚ[HHYË[\OX\ÝOOHYJNÂÛÛÝ[ÈHYË[\OX\ÝOOH[ÙJNÂÛÛÝHØÝ[Y[Ù][[Y[RY
+	ÜXXÊNÂY
+\Ú[K[Ý	[[Ë[Ý
+HÂY
+ÒTÖÉØÚ\XX×JHÈÒTÖÉØÚ\XX×K\ÝÞJ
+NÈ[]HÒTÖÉØÚ\XX×NÈBY
+
+HÈÝ[K\Ü^HH	Ù^	ÎÈ^ÛÛ[H	ÔÙ[HYÜÈHKÐÜÈ[ÜÈ]XZ\ÉÎÈB]\ÂBÛÛÝX[ÈHÉÐÕ]ÉË	ÐÕÝY[ÉË	Ô]ÌÉË	Ô]pêYXIË	Ô][[	×NÂÛÛÝY[ÈHÉØÝ]ÉË	ØÝÝY[ÉË	Ü][[ÛÌÉË	Ü][[ÛYYXIË	Ü][[Û[[	×NÂÛÛÝØ[ÔÝÈHÈOY[ËX\
+OÈÛÛÝHH]ÊËX\
+OÙJJNÈ]\HOH[È\ÙQØ]
 
-    if (!sim.length && !nao.length) {
-      if (CHARTS['chart-ab']) { CHARTS['chart-ab'].destroy(); delete CHARTS['chart-ab']; }
-      if (ph) { ph.style.display = 'flex'; ph.textContent = 'Sem dados de A/B nos filtros atuais'; }
-      return;
-    }
+JL
+KÑ^Y
+JH[ÈJNÂÛÛÝ]\Ù]ÈH×NÂY
+Ú[K[Ý
+H]\Ù]Ë\Ú
+ÈX[ÐÛÛHKÐ
+	ÊÜÚ[K[Ý
+ÉÊIË]NØ[ÔÝÊÚ[JKXÚÙÜÝ[ÛÛÜÈÌØ	ËÜ\ÛÛÜÈÍMYIËÜ\ÚYKÜ\Y]\ÎÈJNÂY
+[Ë[Ý
+H]\Ù]Ë\Ú
+ÈX[ÔÙ[HKÐ
+	ÊÛ[Ë[Ý
+ÉÊIË]NØ[ÔÝÊ[ÊKXÚÙÜÝ[ÛÛÜÈÙNYL	ËÜ\ÛÛÜÈÙ	ËÜ\ÚYKÜ\Y]\ÎÈJNÂZÐÚ\
+	ØÚ\XXËÂ\N	Ø\Ë]NÈX[Ë]\Ù]ÈKÜ[ÛÎÂ\ÜÛÚ]NYKXZ[Z[\ÜXÝ][Î[ÙKYÚ[ÎÂYÙ[È\Ü^NYKX[ÎÈÛÛÜÈÎMLØ	Ë\ÙTÚ[Ý[NYKÚ[Ý[UÚYÛÜÚ^NL_HHKÛÛ\ÈØ[XÚÜÎÈX[ÈO	È	È
+È
+Ë]ÏËÑ^Y
+JHÏÈ	ø %	ÊH
+È	ÉIÈHKKØØ[\ÎÂÈVKNÈVXÚÜÎÈVXÚÜËØ[XÚÎO
+È	ÉIÈHKKKJNÂBËÈ8¥ 8¥ 8¥ 
+K[Y[[H8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ [Ý[Û[\[Y[[PÚ\
+YÊHÂÛÛÝÚ[[ÈHÉÔ[Ú\[	Ë	ÓZ[]\\ÉË	ÔÝ\\[Ü\É×NÂËÈÛÛXÝ[ÛÜ[[\]YH]\ÂÛÛÝ]TÙ]H]ÈÙ]
 
-    const labels = ['CTR Bruto','CTR Studio','Ret. 30s','Ret. Média','Ret. Final'];
-    const fields = ['ctrBruto','ctrStudio','retention30s','retentionMedia','retentionFinal'];
-    const calcRow = g => fields.map(f => { const a = avg(g.map(v => v[f])); return a != null ? parseFloat((a*100).toFixed(2)) : null; });
+NÂYËÜXXÚ
+OÈY
+X\Ú]JH]TÙ]Y
+]]TÚÜ
+X\Ú]JJNÈJNÂÛÛÝ[]\ÈHË]TÙ]KÛÜ
 
-    const datasets = [];
-    if (sim.length) datasets.push({ label:'Com A/B ('+sim.length+')', data:calcRow(sim), backgroundColor:'#3b82f660', borderColor:'#60a5fa', borderWidth:1, borderRadius:3 });
-    if (nao.length) datasets.push({ label:'Sem A/B ('+nao.length+')', data:calcRow(nao), backgroundColor:'#f59e0b60', borderColor:'#fbbf24', borderWidth:1, borderRadius:3 });
+KHOÂÛÛÝHÈOÈÛÛÝÙKWHHËÜ]
+	ËÉÊKX\
+[X\NÈ]\]È]JKKLK
+NÈNÂ]\
+JHH
+NÂJNÂÛÛÝXÝ]PÚ[[ÈHÚ[[Ë[\ÚOYËÛÛYJOÚ[[OOHÚ	X\Ú]JJNÂÛÛÝ]\Ù]ÈHXÝ]PÚ[[ËX\
+ÚOÂÛÛÝÚX\HßNÂYË[\OÚ[[OOHÚ
+KÜXXÚ
+OÂY
+]X\Ú]HY]ÜÌOH[
+H]\ÂÛÛÝH]]TÚÜ
+X\Ú]JNÂY
+XÚX\ÙJHÚX\ÙHH×NÂÚX\ÙK\Ú
+Y]ÜÌ
+NÂJNÂ]\ÂX[Ú]N[]\ËX\
+OÂÛÛÝ[ÈHÚX\ÙNÂ]\[ÈÈX]Ý[
+[ËYXÙJ
+KOOJØ
+KÝ[Ë[Ý
+H[ÂJKÜ\ÛÛÜÒÐÓÓÔÖØÚKXÚÙÜÝ[ÛÛÜÒÐÓÓÔÖØÚH
+È	ÌN	Ë[Ú[ÛÍKÚ[Y]\ÎËÚ[Ý\Y]\Î
+Ú[XÚÙÜÝ[ÛÛÜÒÐÓÓÔÖØÚK[[ÙKÜ[Ø\Î[ÙKNÂJNÂZÐÚ\
+	ØÚ\][Y[[IËÂ\N	Û[IË]NÈX[Î[]\Ë]\Ù]ÈKÜ[ÛÎÂ\ÜÛÚ]NYKXZ[Z[\ÜXÝ][Î[ÙK[\XÝ[ÛÈ[ÙNÚ[^	Ë[\ÙXÝ[ÙHKYÚ[ÎÂYÙ[È\Ü^NYKX[ÎÈÛÛÜÈÎMLØ	Ë\ÙTÚ[Ý[NYKÚ[Ý[UÚYÛÜÚ^NLHHKÛÛ\ÂØ[XÚÜÎÂX[ÈOË]ÈOH[È	È	È
+ÈË]\Ù]X[
+È	Î	È
+È]Ë]ÊH
+È	ÈY]ÜÉÈ[KKKØØ[\ÎÂÈVXÚÜÎÈVXÚÜËX^XÚÜÓ[Z]MX^Ý][Û
+KZ[Ý][ÛHKNÈVXÚÜÎÈVXÚÜËØ[XÚÎO]HHKKKJNÂBËÈ8¥ 8¥ 8¥ 
+[[8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ [Ý[Û[\[[Ú\
+YÊHÂÛÛÝ[\HÝ[JYËX\
+O[\\ÜÚ[ÛÊJNÂÛÛÝY]ÜÈHÝ[JYËX\
+OY]ÜÌ
+JNÂÛÛÝÌÌHÝ[JYË[\O][[ÛÌÈOH[	Y]ÜÌOH[
+KX\
+OX]Ý[
+Y]ÜÌ
+][[ÛÌÊJJNÂÛÛÝÙ[HÝ[JYË[\O][[Û[[OH[	Y]ÜÌOH[
+KX\
+OX]Ý[
+Y]ÜÌ
+][[Û[[
+JJNÂÛÛÝ]HHÚ[\Y]ÜËÌÌÙ[NÂÛÛÝX[ÈHÉÒ[\\ÜðíY\ÉË	ÕY]ÜÈ
+
+IË	Ð\ÜÚ\Ý\[HÌÉË	Ð\ÜÚ\Ý\[H]0êHÈ[I×NÂÛÛÝÛÛÜÈHÉÈÍÍIË	ÈÌØË	ÈÌXMYNIË	ÈÌ
+
+	×NÂÛÛÝYH[\NÂÛÛÝÝÈH]KX\
+O[\È
+ÜYL
+KÑ^Y
+JJÉÉIÈ	ø %	ÊNÂZÐÚ\
+	ØÚ\Y[[	ËÂ\N	Ø\Ë]NÂX[Ë]\Ù]ÎÞÂ]KXÚÙÜÝ[ÛÛÜÛÛÜËX\
+ÈOÈ
+È	ÎNIÊKÜ\ÛÛÜÛÛÜËÜ\ÚYKÜ\Y]\Î
+Ü\ÚÚ\Y[ÙKWBKÜ[ÛÎÂ[^^\Î	ÞIË\ÜÛÚ]NYKXZ[Z[\ÜXÝ][Î[ÙKYÚ[ÎÂYÙ[È\Ü^N[ÙHKÛÛ\ÂØ[XÚÜÎÂX[ÈOÂÛÛÝHHË]R[^Â]\	È	È
+È]]VÚWJH
+È	È
+	È
+ÈÝÖÚWH
+È	È\È[\\ÜðíY\ÊIÎÂKKKKØØ[\ÎÂÈVXÚÜÎÈVXÚÜËØ[XÚÎO]HHKNÈVKKKJNÂBËÈ8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥dËÈTÑSUSÓSÑBËÈ8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d[Ý[ÛÙÙÛT\Ù[][Û
+HÂ\Ù[][Û[ÙHH\\Ù[][Û[ÙNÂØÝ[Y[ÙKÛ\ÜÓ\ÝÙÙÛJ	Ü\Ù[[ÉË\Ù[][Û[ÙJNÂØÝ[Y[Ù][[Y[RY
+	Ù[\Ë\ÙXÝ[ÛÊKÛ\ÜÓ\ÝÙÙÛJ	ÚY[Ë\Ù[][Û[ÙJNÂÛÛÝHØÝ[Y[Ù][[Y[RY
+	Ø\\Ù[	ÊNÂ[\SH\Ù[][Û[ÙBÈ	ø§%HØZ\Â	ÏÝÈÛ\ÜÏHËMM[[H\LKH[YÛ]^XÝÛH[HÛHÝÚÙOHÝ\[ÛÛÜY]ÐÞH]ÝÚÙK[[XØ\HÝ[ÝÚÙK[[ZÚ[HÝ[ÝÚÙK]ÚYHHML
+M
+
+H
+[LLKLULMMMH
+SMML
+KM
+KM[LLH
+[MKM[MH
+]ML
+MÏÜÝÏ\\Ù[\ÎÂY
+\Ù[][Û[ÙJHØÝ[Y[ØÝ[Y[[[Y[\]Y\Ý[ØÜY[Ë
+NÂ[ÙHØÝ[Y[^][ØÜY[Ë
+NÂËÈ\Ú^HÚ\ÈY\^[Ý]Ù]\ÂÙ][Y[Ý]
 
-    mkChart('chart-ab', {
-      type: 'bar',
-      data: { labels, datasets },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { display: true, labels: { color:'#94a3b8', usePointStyle:true, pointStyleWidth:8, font:{size:11} } },
-          tooltip: { ...TT, callbacks: { label: c => '  ' + (c.raw?.toFixed(1) ?? '—') + '%' } },
-        },
-        scales: {
-          x: { ...AX },
-          y: { ...AX, ticks: { ...AX.ticks, callback: v => v + '%' } },
-        },
-      },
-    });
-  }
 
-  // ─── 5. Timeline ───────────────────────────────────────────────────────────
-  function renderTimelineChart(vids) {
-    const channels = ['Principal','Militares','Superiores'];
+HOØXÝ[Y\ÊÒTÊKÜXXÚ
+ÈOÏË\Ú^J
+JKÍL
+NÂBØÝ[Y[Y][\Ý[\	ÚÙ^YÝÛËHOÂY
 
-    // Collect and sort all unique dates
-    const dateSet = new Set();
-    vids.forEach(v => { if (v.publishDate) dateSet.add(fmtDateShort(v.publishDate)); });
-    const allDates = [...dateSet].sort((a, b) => {
-      const p = s => { const [d,m,y] = s.split('/').map(Number); return new Date(y,m-1,d); };
-      return p(a) - p(b);
-    });
+KÙ^OOOIÙßKÙ^OOOIÑÊH	YKÝÙ^H	YKY]RÙ^JHÙÙÛT\Ù[][Û
+NÂJNÂËÈ8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥dËÈVÔ8 %[Ø[\È
+ÈÔ
+Ù[HK[^[Ý]Ù[HÛØ\ÜÚpéðèÛÊBËÈ8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d\Þ[È[Ý[Û^Ü
+HÂY
+\[Ù[Ø[\ÈOOH	Ý[Y[Y	È\[ÙÚ[ÝËÜOOH	Ý[Y[Y	ÊHÂ[\
+	ÐX[ÝXØ\È°èÛÈØ\YØ\[K\Y\]YHHÛÛ^0èÛÈHXØ\YÝYHH0èYÚ[KÊNÂ]\ÂBÛÛÝ[\Ñ[HØÝ[Y[Ù][[Y[RY
+	Ù[\Ë\ÙXÝ[ÛÊNÂÛÛÝ^ÜHØÝ[Y[Ù][[Y[RY
+	ØY^Ü	ÊNÂÛÛÝY\ÚHØÝ[Y[Ù][[Y[RY
+	Ø\Y\Ú	ÊNÂÛÛÝ\Ù[HØÝ[Y[Ù][[Y[RY
+	Ø\\Ù[	ÊNÂÛÛÝ[\Ø\ÒY[H[\Ñ[Û\ÜÓ\ÝÛÛZ[Ê	ÚY[ÊNÂËÈØÝ[HÚÛYHHRB[\Ñ[Û\ÜÓ\ÝY
+	ÚY[ÊNÂØ^ÜY\Ú\Ù[KÜXXÚ
+OÝ[K\ÚX[]HH	ÚY[ÊNÂËÈÝ\^HHÙÜ\ÜÛÂÛÛÝÝ\^HHØÝ[Y[ÜX]Q[[Y[
+	Ù]ÊNÂÝ\^KÝ[KÜÜÕ^H	ÜÜÚ][Û^YÚ[Ù]ÞZ[^NNNNØXÚÙÜÝ[ØJMKË
+
+JNÙ\Ü^N^Ø[YÛZ][\ÎÙ[\Ú\ÝYKXÛÛ[Ù[\ÙÛY[Z[NÞ\Ý[K]ZIÎÂÝ\^K[\SH]Ý[OHXÚÙÜÝ[ÌYLLØØÜ\\ÛÛYÌÌÍMMNØÜ\\Y]\ÎMÜY[ÎÌ
+LÝ^X[YÛÙ[\]Ý[OHÚYÍÚZYÚÍØÜ\ÜÛÛYÌÌÍMMNØÜ\]ÜXÛÛÜÍMYNÂÜ\\Y]\ÎL	NØ[[X][ÛÜ[\È[X\[[]NÛX\Ú[]]ÈMÙ]Ý[OHÛÛÜÎMLØÙÛ\Ú^NMÛX\Ú[Ø\\[È\ÚØ\8 )ÜYH\Ý\Ý[OHÛÛÜÍ
+ÍMMNÙÛ\Ú^NLÛX\Ú[YÝX\OÜÙ]ÂØÝ[Y[ÙK\[Ú[
+Ý\^JNÂÛÛÝÙ]Ý\HOÈÛÛÝ[HØÝ[Y[Ù][[Y[RY
+	Ü\Ý\	ÊNÈY
+[
+H[^ÛÛ[HÈNÂËÈÛØH[ÈÜÈ\HØ\\HÛÛÚ\Ý[BÛÛÝØÜÛHHÚ[ÝËØÜÛNÂÚ[ÝËØÜÛÊ
+NÂ]ØZ]]ÈÛZ\ÙJOÙ][Y[Ý]
+Ì
+JNÂÛÛÝ[[Y[HØÝ[Y[Ù][[Y[RY
+	ÛXZ[ÊNÂÛÛÝ[[[YHH	ÕSQ\ÚØ\IÈ
+È]È]J
+KÓØØ[Q]TÝ[Ê	ÜPÊK\XÙJ×ËÙË	ËIÊH
+È	ËÎÂHÂËÈ8¥ 8¥ \ÜÛÈNØ\\H]HTÈÜÈØ[\Ù\ÈSTÈÈÛÛH8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ ËÈ[Ø[\ÈÛÛHÈÓHX\ÈØ[\Ù\ÈÛÛYÜÈXØ[H^[ÜÎÈXÚ\Ø[[ÜÂËÈ[\Ý\H[XYÙ[H[\^YHÈÛÛKÙ]Ý\
+	Ó[ÈÜ°èYXÛÜø )ÊNÂÛÛÝØ[\ÓX\H]ÈX\
 
-    const activeChannels = channels.filter(ch => vids.some(v => v.channel === ch && v.publishDate));
-
-    const datasets = activeChannels.map(ch => {
-      const chMap = {};
-      vids.filter(v => v.channel === ch).forEach(v => {
-        if (!v.publishDate || v.views24h == null) return;
-        const d = fmtDateShort(v.publishDate);
-        if (!chMap[d]) chMap[d] = [];
-        chMap[d].push(v.views24h);
-      });
-      return {
-        label: ch,
-        data: allDates.map(d => {
-          const vals = chMap[d];
-          return vals ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length) : null;
-        }),
-        borderColor: CH_COLORS[ch],
-        backgroundColor: CH_COLORS[ch] + '18',
-        tension: 0.35, pointRadius: 3, pointHoverRadius: 6,
-        pointBackgroundColor: CH_COLORS[ch],
-        fill: false, spanGaps: false,
-      };
-    });
-
-    mkChart('chart-timeline', {
-      type: 'line',
-      data: { labels: allDates, datasets },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        interaction: { mode:'index', intersect:false },
-        plugins: {
-          legend: { display: true, labels: { color:'#94a3b8', usePointStyle:true, pointStyleWidth:8, font:{size:12} } },
-          tooltip: {
-            ...TT,
-            callbacks: {
-              label: c => c.raw != null ? '  ' + c.dataset.label + ': ' + fmtN(c.raw) + ' views' : null,
-            },
-          },
-        },
-        scales: {
-          x: { ...AX, ticks: { ...AX.ticks, maxTicksLimit:14, maxRotation:45, minRotation:0 } },
-          y: { ...AX, ticks: { ...AX.ticks, callback: v => fmtN(v) } },
-        },
-      },
-    });
-  }
-
-  // ─── 6. Funil ──────────────────────────────────────────────────────────────
-  function renderFunnelChart(vids) {
-    const imp   = sum(vids.map(v => v.impressions));
-    const views = sum(vids.map(v => v.views24h));
-    const s30   = sum(vids.filter(v => v.retention30s  != null && v.views24h != null).map(v => Math.round(v.views24h * v.retention30s)));
-    const sfin  = sum(vids.filter(v => v.retentionFinal != null && v.views24h != null).map(v => Math.round(v.views24h * v.retentionFinal)));
-
-    const data   = [imp, views, s30, sfin];
-    const labels = ['Impressões','Views (24h)','Assistiram 30s','Assistiram até o fim'];
-    const colors = ['#6366f1','#3b82f6','#0ea5e9','#06b6d4'];
-    const ref    = imp || 1;
-    const pcts   = data.map(v => imp > 0 ? (v/ref*100).toFixed(1)+'%' : '—');
-
-    mkChart('chart-funnel', {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [{
-          data,
-          backgroundColor: colors.map(c => c + '99'),
-          borderColor: colors,
-          borderWidth: 1, borderRadius: 4, borderSkipped: false,
-        }]
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            ...TT,
-            callbacks: {
-              label: c => {
-                const i = c.dataIndex;
-                return '  ' + fmtN(data[i]) + '   (' + pcts[i] + ' das impressões)';
-              },
-            },
-          },
-        },
-        scales: {
-          x: { ...AX, ticks: { ...AX.ticks, callback: v => fmtN(v) } },
-          y: { ...AX },
-        },
-      },
-    });
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  //  PRESENTATION MODE
-  // ═══════════════════════════════════════════════════════════════════════════
-  function togglePresentation() {
-    presentationMode = !presentationMode;
-    document.body.classList.toggle('presenting', presentationMode);
-    document.getElementById('filters-section').classList.toggle('hidden', presentationMode);
-
-    const btn = document.getElementById('btn-present');
-    btn.innerHTML = presentationMode
-      ? '✕ Sair'
-      : '<svg class="w-4 h-4 inline mr-1.5 align-text-bottom" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>Apresentar';
-
-    if (presentationMode) document.documentElement.requestFullscreen?.();
-    else document.exitFullscreen?.();
-
-    // Resize charts after layout settles
-    setTimeout(() => Object.values(CHARTS).forEach(c => c?.resize()), 350);
-  }
-  document.addEventListener('keydown', e => {
-    if ((e.key==='f'||e.key==='F') && !e.ctrlKey && !e.metaKey) togglePresentation();
-  });
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  //  EXPORT PDF  — html2canvas + jsPDF (sem re-layout, sem sobreposição)
-  // ═══════════════════════════════════════════════════════════════════════════
-  async function exportPDF() {
-    if (typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
-      alert('Bibliotecas não carregaram. Verifique a conexão e recarregue a página.');
-      return;
-    }
-
-    const filtersEl  = document.getElementById('filters-section');
-    const btnExport  = document.getElementById('btn-export');
-    const btnRefresh = document.getElementById('btn-refresh');
-    const btnPresent = document.getElementById('btn-present');
-    const filterWasHidden = filtersEl.classList.contains('hidden');
-
-    // Oculta chrome da UI
-    filtersEl.classList.add('hidden');
-    [btnExport, btnRefresh, btnPresent].forEach(b => b.style.visibility = 'hidden');
-
-    // Overlay de progresso
-    const overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.85);display:flex;align-items:center;justify-content:center;font-family:system-ui';
-    overlay.innerHTML = `
-      <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:32px 52px;text-align:center">
-        <div style="width:34px;height:34px;border:3px solid #334155;border-top-color:#60a5fa;
-                    border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 14px"></div>
-        <p style="color:#94a3b8;font-size:14px;margin:0">Capturando dashboard…</p>
-        <p id="pdf-step" style="color:#475569;font-size:12px;margin:6px 0 0">Aguarde</p>
-      </div>`;
-    document.body.appendChild(overlay);
-    const setStep = t => { const el = document.getElementById('pdf-step'); if (el) el.textContent = t; };
-
-    // Sobe ao topo para captura consistente
-    const scrollY = window.scrollY;
-    window.scrollTo(0, 0);
-    await new Promise(r => setTimeout(r, 300));
-
-    const element  = document.getElementById('main');
-    const filename = 'UN-Dashboard-' + new Date().toLocaleDateString('pt-BR').replace(/\//g,'-') + '.pdf';
-
-    try {
-      // ── Passo 1: captura data URLs dos canvases ANTES do clone ─────────────
-      // html2canvas clona o DOM mas canvases clonados ficam vazios; precisamos
-      // injetar a imagem renderizada no clone.
-      setStep('Lendo gráficos…');
-      const canvasMap = new Map();
-      element.querySelectorAll('canvas').forEach(c => {
-        if (!c.id) return;
-        try { canvasMap.set(c.id, c.toDataURL('image/png')); } catch(_) {}
-      });
-
-      // ── Passo 2: screenshot do elemento ────────────────────────────────────
-      setStep('Gerando imagem…');
-      const shot = await html2canvas(element, {
-        scale:           2,
-        useCORS:         true,
-        allowTaint:      true,
-        backgroundColor: '#0f172a',
-        scrollX:         0,
-        scrollY:         0,
-        windowWidth:     1400,
-        onclone: (doc) => {
-          // Substitui canvases clonados (vazios) por <img> com a captura real
-          doc.querySelectorAll('canvas').forEach(clone => {
-            const dataURL = canvasMap.get(clone.id);
-            if (!dataURL) return;
-            const img = doc.createElement('img');
-            img.src = dataURL;
-            img.style.cssText =
-              `width:${clone.offsetWidth}px;height:${clone.offsetHeight}px;display:block;max-width:none`;
-            clone.parentNode.replaceChild(img, clone);
-          });
-        },
-      });
-
-      // ── Passo 3: monta PDF ─────────────────────────────────────────────────
-      setStep('Montando PDF…');
-      const { jsPDF } = window.jspdf;
-
-      // A4 paisagem: 297 × 210 mm
-      const pageW = 297, pageH = 210, mg = 8;
-      const aw = pageW - 2*mg;  // 281 mm úteis de largura
-      const ah = pageH - 2*mg;  // 194 mm úteis de altura
-
-      const iw = shot.width;    // pixels
-      const ih = shot.height;
-
-      // mm por pixel (escala horizontal)
-      const mmPx  = aw / iw;
-      // altura total da imagem em mm
-      const totalMM = ih * mmPx;
-
-      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-
-      if (totalMM <= ah) {
-        // ── Cabe numa página — centraliza verticalmente ──────────────────────
-        const yOff = mg + (ah - totalMM) / 2;
-        pdf.addImage(shot.toDataURL('image/jpeg', 0.92), 'JPEG', mg, yOff, aw, totalMM);
-      } else {
-        // ── Múltiplas páginas: fatia a imagem pixel a pixel ─────────────────
-        // Cada página recebe exatamente ah mm de conteúdo.
-        // Como é uma imagem fatiada, nenhum elemento HTML é re-renderizado
-        // e gráficos nunca se sobrepõem.
-        const pxPerPage = ah / mmPx;   // pixels que cabem por página
-        let yPx = 0;
-        let first = true;
-
-        while (yPx < ih) {
-          if (!first) pdf.addPage();
-          first = false;
-
-          const slicePx = Math.min(pxPerPage, ih - yPx);
-          const sliceMM = slicePx * mmPx;
-
-          // Cria canvas temporário para o slice
-          const tmp = document.createElement('canvas');
-          tmp.width  = iw;
-          tmp.height = Math.ceil(slicePx);
-          const ctx  = tmp.getContext('2d');
-          ctx.fillStyle = '#0f172a';
-          ctx.fillRect(0, 0, tmp.width, tmp.height);
-          ctx.drawImage(shot, 0, yPx, iw, tmp.height, 0, 0, iw, tmp.height);
-
-          pdf.addImage(tmp.toDataURL('image/jpeg', 0.92), 'JPEG', mg, mg, aw, sliceMM);
-          yPx += pxPerPage;
-        }
-      }
-
-      pdf.save(filename);
-
-    } catch (err) {
-      alert('Erro ao gerar PDF: ' + err.message);
-      console.error(err);
-    } finally {
-      window.scrollTo(0, scrollY);
-      document.body.removeChild(overlay);
-      if (!filterWasHidden && !presentationMode) filtersEl.classList.remove('hidden');
-      [btnExport, btnRefresh, btnPresent].forEach(b => b.style.visibility = '');
-    }
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  //  UI HELPERS
-  // ═══════════════════════════════════════════════════════════════════════════
-  function setText(id, txt) { const el = document.getElementById(id); if (el) el.textContent = txt; }
-  function setLoading(on)   { document.getElementById('overlay-loading').style.display = on ? 'flex' : 'none'; }
-  function showBanner(msg)  { setText('error-msg', msg); document.getElementById('banner-error').classList.remove('hidden'); }
-  function hideBanner()     { document.getElementById('banner-error').classList.add('hidden'); }
-  function esc(s) {
-    if (!s) return '';
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  //  INIT
-  // ═══════════════════════════════════════════════════════════════════════════
-  fetchData();
-  </script>
-</body>
-</html>
+NÂ[[Y[]Y\TÙ[XÝÜ[
+	ØØ[\ÉÊKÜXXÚ
+ÈOÂY
+XËY
+H]\ÂHÈØ[\ÓX\Ù]
+ËYËÑ]UT
+	Ú[XYÙKÜÉÊJNÈHØ]Ú
+ÊHßBJNÂËÈ8¥ 8¥ \ÜÛÈØÜY[ÚÝÈ[[Y[È8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ Ù]Ý\
+	ÑÙ\[È[XYÙ[x )ÊNÂÛÛÝÚÝH]ØZ][Ø[\Ê[[Y[ÂØØ[N\ÙPÓÔÎYK[ÝÕZ[YKXÚÙÜÝ[ÛÛÜ	ÈÌMÌIËØÜÛØÜÛNÚ[ÝÕÚYMÛÛÛN
+ØÊHOÂËÈÝXÝ]ZHØ[\Ù\ÈÛÛYÜÈ
+^[ÜÊHÜ[YÏÛÛHHØ\\HX[ØË]Y\TÙ[XÝÜ[
+	ØØ[\ÉÊKÜXXÚ
+ÛÛHOÂÛÛÝ]UTHØ[\ÓX\Ù]
+ÛÛKY
+NÂY
+Y]UT
+H]\ÂÛÛÝ[YÈHØËÜX]Q[[Y[
+	Ú[YÉÊNÂ[YËÜÈH]UTÂ[YËÝ[KÜÜÕ^BÚYØÛÛKÙÙ]ÚY\ÚZYÚØÛÛKÙÙ]ZYÚ\Ù\Ü^NØÚÎÛX^]ÚYÛXÂÛÛK\[ÙK\XÙPÚ[
+[YËÛÛJNÂJNÂKJNÂËÈ8¥ 8¥ \ÜÛÈÎ[ÛH8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ Ù]Ý\
+	Ó[Û[È¸ )ÊNÂÛÛÝÈÔHHÚ[ÝËÜÂËÈMZ\ØYÙ[NMÈ0åÈL[BÛÛÝYÙUÈHMËYÙRHLYÈHÂÛÛÝ]ÈHYÙUÈHYÎÈËÈH[H0îZ\ÈH\Ý\BÛÛÝZHYÙRHYÎÈËÈNM[H0îZ\ÈH[\BÛÛÝ]ÈHÚÝÚYÈËÈ^[ÂÛÛÝZHÚÝZYÚÂËÈ[HÜ^[
+\ØØ[HÜ^Û[
+BÛÛÝ[TH]ÈÈ]ÎÂËÈ[\HÝ[H[XYÙ[H[H[BÛÛÝÝ[SHHZ
+[TÂÛÛÝH]ÈÔÈÜY[][Û	Û[ØØ\IË[]	Û[IËÜX]	ØM	ÈJNÂY
+Ý[SHHZ
+HÂËÈ8¥ 8¥ ØXH[XH0èYÚ[H8 %Ù[[^H\XØ[Y[H8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ ÛÛÝSÙHYÈ
+È
+ZHÝ[SJHÈÂY[XYÙJÚÝÑ]UT
+	Ú[XYÙKÚYÉËLK	ÒQÉËYËSÙ]ËÝ[SJNÂH[ÙHÂËÈ8¥ 8¥ pî\\È0èYÚ[\Î]XHH[XYÙ[H^[H^[8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ 8¥ ËÈØYH0èYÚ[HXÙXH^][Y[HZ[HHÛÛpîËËÈÛÛ[È0êH[XH[XYÙ[H]XYK[[H[[Y[ÈS0êHK\[\^YÂËÈHÜ°èYXÛÜÈ[ØHÙHÛØ\0íY[KÛÛÝ\YÙHHZÈ[TÈËÈ^[È]YHØX[HÜ0èYÚ[B]THÂ]\ÝHYNÂÚ[H
+TZ
+HÂY
+Y\Ý
+HYYÙJ
+NÂ\ÝH[ÙNÂÛÛÝÛXÙTHX]Z[\YÙKZHT
+NÂÛÛÝÛXÙSSHHÛXÙT
+[TÂËÈÜXHØ[\È[\Ü°è\[È\HÈÛXÙBÛÛÝ\HØÝ[Y[ÜX]Q[[Y[
+	ØØ[\ÉÊNÂ\ÚYH]ÎÂ\ZYÚHX]ÙZ[
+ÛXÙT
+NÂÛÛÝÝH\Ù]ÛÛ^
+	Ì	ÊNÂÝ[Ý[HH	ÈÌMÌIÎÂÝ[XÝ
+\ÚY\ZYÚ
+NÂÝ]Ò[XYÙJÚÝT]Ë\ZYÚ]Ë\ZYÚ
+NÂY[XYÙJ\Ñ]UT
+	Ú[XYÙKÚYÉËLK	ÒQÉËYËYË]ËÛXÙSSJNÂT
+ÏH\YÙNÂBBØ]J[[[YJNÂHØ]Ú
+\HÂ[\
+	Ñ\È[ÈÙ\\	È
+È\Y\ÜØYÙJNÂÛÛÛÛK\Ü\NÂH[[HÂÚ[ÝËØÜÛÊØÜÛJNÂØÝ[Y[ÙK[[ÝPÚ[
+Ý\^JNÂY
+Y[\Ø\ÒY[	\\Ù[][Û[ÙJH[\Ñ[Û\ÜÓ\Ý[[ÝJ	ÚY[ÊNÂØ^ÜY\Ú\Ù[KÜXXÚ
+OÝ[K\ÚX[]HH	ÉÊNÂBBËÈ8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥dËÈRHSTÂËÈ8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d[Ý[ÛÙ]^
+Y
+HÈÛÛÝ[HØÝ[Y[Ù][[Y[RY
+Y
+NÈY
+[
+H[^ÛÛ[HÈB[Ý[ÛÙ]ØY[ÊÛHÈØÝ[Y[Ù][[Y[RY
+	ÛÝ\^K[ØY[ÉÊKÝ[K\Ü^HHÛÈ	Ù^	È	ÛÛIÎÈB[Ý[ÛÚÝÐ[\\ÙÊHÈÙ]^
+	Ù\Ü[\ÙÉË\ÙÊNÈØÝ[Y[Ù][[Y[RY
+	Ø[\Y\ÜÊKÛ\ÜÓ\Ý[[ÝJ	ÚY[ÊNÈB[Ý[ÛYP[\
+HÈØÝ[Y[Ù][[Y[RY
+	Ø[\Y\ÜÊKÛ\ÜÓ\ÝY
+	ÚY[ÊNÈB[Ý[Û\ØÊÊHÂY
+\ÊH]\	ÉÎÂ]\Ý[ÊÊK\XÙJÉÙË	É[\ÉÊK\XÙJÏÙË	ÉÉÊK\XÙJÏÙË	ÉÝÉÊK\XÙJÈÙË	É][ÝÉÊNÂBËÈ8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥dËÈSUËÈ8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d8¥d]Ú]J
+NÂÜØÜ\ØÙOÚ[
