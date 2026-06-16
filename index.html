@@ -55,6 +55,25 @@
     ::-webkit-scrollbar-track { background: #0f172a; }
     ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
 
+    .perf-bom   { color: #4ade80; }
+    .perf-medio { color: #facc15; }
+    .perf-ruim  { color: #f87171; }
+    .perf-dot   { display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;vertical-align:middle; }
+    .perf-dot.bom   { background:#4ade80; }
+    .perf-dot.medio { background:#facc15; }
+    .perf-dot.ruim  { background:#f87171; }
+    th.sortable { cursor:pointer;user-select:none;white-space:nowrap; }
+    th.sortable:hover { color:#e2e8f0; }
+    th.sort-asc::after  { content:" ↑";opacity:.7; }
+    th.sort-desc::after { content:" ↓";opacity:.7; }
+    #rank-table-wrap { max-height:600px;overflow-y:auto;overflow-x:auto; }
+    #rank-table-wrap table { min-width:780px; }
+    .sort-btn { padding:3px 10px;border-radius:6px;font-size:12px;color:#94a3b8;transition:all .15s;white-space:nowrap; }
+    .sort-btn:hover { background:#334155;color:#e2e8f0; }
+    .sort-btn.active { background:#1d4ed8;color:#fff; }
+    .dir-btn { padding:3px 10px;border-radius:6px;font-size:12px;border:1px solid #334155;color:#94a3b8;transition:all .15s; }
+    .dir-btn:hover { background:#334155;color:#e2e8f0; }
+
     .chart-wrap { position: relative; }
     .chart-ph {
       position: absolute; inset: 0;
@@ -73,8 +92,6 @@
     body.presenting #kpi-ret-final {
       font-size: 3rem !important; line-height: 1.05;
     }
-    body.presenting #kpi-ctr-bruto-geral,
-    body.presenting #kpi-ctr-bruto-top80,
     body.presenting #kpi-ctr-studio-geral,
     body.presenting #kpi-ctr-studio-top80 {
       font-size: 2.25rem !important; line-height: 1.05;
@@ -211,6 +228,20 @@
           <button onclick="setAB(false)" id="ab-nao"  class="ab-btn">Não</button>
         </div>
 
+        <div class="h-7 w-px bg-slate-600 hidden sm:block"></div>
+
+        <!-- Intervalo de datas -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-xs text-slate-500 shrink-0">De:</span>
+          <input type="date" id="filter-date-from" onchange="globalDateChanged()"
+            class="bg-slate-700 border border-slate-600 text-slate-300 text-xs rounded-lg px-2 py-1.5
+                   focus:outline-none focus:border-blue-500 w-36">
+          <span class="text-xs text-slate-500 shrink-0">Até:</span>
+          <input type="date" id="filter-date-to" onchange="globalDateChanged()"
+            class="bg-slate-700 border border-slate-600 text-slate-300 text-xs rounded-lg px-2 py-1.5
+                   focus:outline-none focus:border-blue-500 w-36">
+        </div>
+
         <button onclick="clearFilters()"
           class="text-xs text-slate-600 hover:text-slate-400 underline transition-colors ml-auto">
           Limpar filtros
@@ -233,26 +264,24 @@
       </div>
       <div class="bg-slate-800 border border-slate-700 rounded-xl p-4">
         <div class="flex items-center justify-between mb-3">
-          <p class="text-xs text-slate-500 font-medium uppercase tracking-wider">CTR Bruto</p>
+          <p class="text-xs text-slate-500 font-medium uppercase tracking-wider">Impressões</p>
           <span class="has-tooltip cursor-help">
             <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
-            <div class="tip"><strong>Top 80%:</strong> ordena os vídeos pela métrica (maior → menor),
-              descarta os 20% piores e calcula a média dos restantes. Revela o impacto
-              dos outliers negativos na média geral.</div>
+            <div class="tip"><strong>Top 80%:</strong> média das impressões dos 80% melhores vídeos por views.</div>
           </span>
         </div>
         <div class="flex items-end gap-4">
           <div>
-            <p class="text-xs text-slate-600 mb-0.5">Geral</p>
-            <p id="kpi-ctr-bruto-geral" class="text-2xl font-bold text-white">—</p>
+            <p class="text-xs text-slate-600 mb-0.5">Total</p>
+            <p id="kpi-impressoes-total" class="text-2xl font-bold text-white">—</p>
           </div>
           <div class="text-slate-700 mb-1">|</div>
           <div>
-            <p class="text-xs text-blue-500 mb-0.5">Top 80%</p>
-            <p id="kpi-ctr-bruto-top80" class="text-2xl font-bold text-blue-400">—</p>
+            <p class="text-xs text-blue-500 mb-0.5">Média/vídeo</p>
+            <p id="kpi-impressoes-avg" class="text-2xl font-bold text-blue-400">—</p>
           </div>
         </div>
       </div>
@@ -347,6 +376,15 @@
       </div>
     </div>
 
+    <!-- SUBSCRIBERS -->
+    <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 mb-4">
+      <h3 class="text-sm font-semibold text-slate-300 mb-3">Inscritos por Canal</h3>
+      <div class="chart-wrap h-72">
+        <canvas id="chart-subscribers"></canvas>
+        <div class="chart-ph" id="ph-subscribers">Sem dados de inscritos</div>
+      </div>
+    </div>
+
     <!-- FUNNEL -->
     <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 mb-6">
       <div class="flex items-center gap-2 mb-3">
@@ -359,10 +397,26 @@
       </div>
     </div>
 
-    <!-- TOP 10 TABLE -->
+    <!-- RANKING TABLE -->
     <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 mb-6">
-      <h3 class="text-sm font-semibold text-slate-300 mb-4">Top 10 Vídeos por Views</h3>
-      <div id="table-top10" class="overflow-x-auto">
+      <div class="flex flex-wrap items-center gap-2 mb-3">
+        <h3 class="text-sm font-semibold text-slate-300 shrink-0">Ranking</h3>
+        <span id="rank-count" class="text-xs bg-slate-700 text-slate-400 px-2 py-0.5 rounded-full shrink-0">—</span>
+        <div class="w-px h-5 bg-slate-700 hidden sm:block"></div>
+        <span class="text-xs text-slate-500 shrink-0">Ordenar por:</span>
+        <div class="flex flex-wrap gap-1" id="sort-btns">
+          <button class="sort-btn active" onclick="setRankSort('views24h')">Views</button>
+          <button class="sort-btn" onclick="setRankSort('impressions')">Impressões</button>
+          <button class="sort-btn" onclick="setRankSort('ctrStudio')">CTR Studio</button>
+          <button class="sort-btn" onclick="setRankSort('retention30s')">Ret. 30s</button>
+          <button class="sort-btn" onclick="setRankSort('retentionMedia')">Ret. Média</button>
+          <button class="sort-btn" onclick="setRankSort('retentionFinal')">Ret. Final</button>
+          <button class="sort-btn" onclick="setRankSort('publishDate')">Data</button>
+        </div>
+        <button id="btn-rank-dir" onclick="toggleRankDir()"
+          class="dir-btn ml-auto shrink-0">↓ Maior primeiro</button>
+      </div>
+      <div id="rank-table-wrap">
         <p class="text-slate-600 text-sm">Carregando…</p>
       </div>
     </div>
@@ -381,9 +435,14 @@
   // ═══════════════════════════════════════════════════════════════════════════
   //  STATE
   // ═══════════════════════════════════════════════════════════════════════════
-  let allVideos = [];
-  let filters   = { channels: new Set(), quarters: new Set(), videoTypes: new Set(), abTest: 'all' };
+  let allVideos      = [];
+  let allSubscribers = [];
+  let filters        = { channels: new Set(), quarters: new Set(), videoTypes: new Set(), abTest: 'all', dateFrom: null, dateTo: null };
   let presentationMode = false;
+  let rankSort  = 'views24h';
+  let rankDir   = -1;
+  let rankDateFrom = null;
+  let rankDateTo   = null;
 
   // ═══════════════════════════════════════════════════════════════════════════
   //  FETCH
@@ -398,7 +457,12 @@
       allVideos = (data.videos || []).map(v => ({
         ...v,
         publishDate: v.publishDate ? new Date(v.publishDate) : null,
-        videoType: v.videoType ? v.videoType.trim().replace(/\s+/g, ' ') : v.videoType,
+        videoType:   v.videoType ? v.videoType.trim().replace(/\s+/g, ' ') : v.videoType,
+        perf:        v.perf || {},
+      }));
+      allSubscribers = (data.subscribers || []).map(s => ({
+        ...s,
+        date: s.date ? new Date(s.date) : null,
       }));
       setText('data-timestamp', 'Atualizado em ' + new Date(data.timestamp).toLocaleString('pt-BR'));
       buildDynamicFilters();
@@ -465,10 +529,20 @@
     render();
   }
   function clearFilters() {
-    filters = { channels: new Set(), quarters: new Set(), videoTypes: new Set(), abTest: 'all' };
+    filters = { channels: new Set(), quarters: new Set(), videoTypes: new Set(), abTest: 'all', dateFrom: null, dateTo: null };
     document.querySelectorAll('.ms-panel input').forEach(cb => cb.checked = false);
     ['canal','trimestre','tipo'].forEach(syncLabel);
+    const df = document.getElementById('filter-date-from'); if (df) df.value = '';
+    const dt = document.getElementById('filter-date-to');   if (dt) dt.value = '';
     setAB('all');
+  }
+
+  function globalDateChanged() {
+    const df = document.getElementById('filter-date-from').value;
+    const dt = document.getElementById('filter-date-to').value;
+    filters.dateFrom = df ? new Date(df)                 : null;
+    filters.dateTo   = dt ? new Date(dt + 'T23:59:59')  : null;
+    render();
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -480,6 +554,8 @@
       if (filters.quarters.size   && !filters.quarters.has(v.quarter))     return false;
       if (filters.videoTypes.size && !filters.videoTypes.has(v.videoType)) return false;
       if (filters.abTest !== 'all' && v.abTest !== filters.abTest)         return false;
+      if (filters.dateFrom && (!v.publishDate || v.publishDate < filters.dateFrom)) return false;
+      if (filters.dateTo   && (!v.publishDate || v.publishDate > filters.dateTo))   return false;
       return true;
     });
   }
@@ -510,16 +586,16 @@
 
   function calcKPIs(vids) {
     return {
-      total:          vids.length,
-      totalViews:     sum(vids.map(v => v.views24h)),
-      avgViews:       avg(vids.map(v => v.views24h)),
-      ctrBrutoGeral:  avg(vids.map(v => v.ctrBruto)),
-      ctrBrutoTop80:  top80avg(vids.map(v => v.ctrBruto)),
-      ctrStudioGeral: avg(vids.map(v => v.ctrStudio)),
-      ctrStudioTop80: top80avg(vids.map(v => v.ctrStudio)),
-      ret30s:         avg(vids.map(v => v.retention30s)),
-      retMedia:       avg(vids.map(v => v.retentionMedia)),
-      retFinal:       avg(vids.map(v => v.retentionFinal)),
+      total:           vids.length,
+      totalViews:      sum(vids.map(v => v.views24h)),
+      avgViews:        avg(vids.map(v => v.views24h)),
+      totalImpress:    sum(vids.map(v => v.impressions)),
+      avgImpress:      avg(vids.map(v => v.impressions)),
+      ctrStudioGeral:  avg(vids.map(v => v.ctrStudio)),
+      ctrStudioTop80:  top80avg(vids.map(v => v.ctrStudio)),
+      ret30s:          avg(vids.map(v => v.retention30s)),
+      retMedia:        avg(vids.map(v => v.retentionMedia)),
+      retFinal:        avg(vids.map(v => v.retentionFinal)),
     };
   }
 
@@ -557,8 +633,8 @@
     setText('kpi-total-sub',        'de ' + allVideos.length.toLocaleString('pt-BR') + ' no total');
     setText('kpi-views',            fmtN(k.totalViews));
     setText('kpi-views-sub',        k.avgViews ? 'Média: ' + fmtN(k.avgViews) + ' / vídeo' : '—');
-    setText('kpi-ctr-bruto-geral',  fmtPct(k.ctrBrutoGeral));
-    setText('kpi-ctr-bruto-top80',  fmtPct(k.ctrBrutoTop80));
+    setText('kpi-impressoes-total', fmtN(k.totalImpress));
+    setText('kpi-impressoes-avg',   fmtN(k.avgImpress));
     setText('kpi-ctr-studio-geral', fmtPct(k.ctrStudioGeral));
     setText('kpi-ctr-studio-top80', fmtPct(k.ctrStudioTop80));
     setText('kpi-ret30',            fmtPct(k.ret30s));
@@ -572,52 +648,151 @@
     if (filters.quarters.size)   parts.push([...filters.quarters].join(', '));
     if (filters.videoTypes.size) parts.push([...filters.videoTypes].join(', '));
     if (filters.abTest !== 'all') parts.push('A/B: ' + (filters.abTest ? 'Sim' : 'Não'));
+    if (filters.dateFrom || filters.dateTo) {
+      const df = filters.dateFrom ? filters.dateFrom.toLocaleDateString('pt-BR') : '…';
+      const dt = filters.dateTo   ? filters.dateTo.toLocaleDateString('pt-BR')   : '…';
+      parts.push('Data: ' + df + ' → ' + dt);
+    }
     setText('filter-summary', parts.length
       ? 'Filtros: ' + parts.join(' · ')
       : 'Mostrando todos os ' + vids.length + ' vídeos');
   }
 
+  function perfClass(p) {
+    if (!p) return '';
+    const l = p.toLowerCase();
+    if (l === 'bom')   return 'perf-bom';
+    if (l === 'médio' || l === 'medio') return 'perf-medio';
+    if (l === 'ruim')  return 'perf-ruim';
+    return '';
+  }
+  function perfDot(p) {
+    if (!p) return '';
+    const l = p.toLowerCase();
+    const cls = l === 'bom' ? 'bom' : (l === 'médio' || l === 'medio') ? 'medio' : l === 'ruim' ? 'ruim' : '';
+    return cls ? `<span class="perf-dot ${cls}"></span>` : '';
+  }
+  function perfCell(val, fmt, perf) {
+    return `<td class="py-2.5 px-3 text-right tabular-nums whitespace-nowrap text-sm ${perfClass(perf)}">${perfDot(perf)}${fmt}</td>`;
+  }
+
+  function rankFilterChanged() {
+    const df = document.getElementById('rank-date-from').value;
+    const dt = document.getElementById('rank-date-to').value;
+    rankDateFrom = df ? new Date(df) : null;
+    rankDateTo   = dt ? new Date(dt + 'T23:59:59') : null;
+    renderTable(getFiltered());
+  }
+  function clearRankDates() {
+    document.getElementById('rank-date-from').value = '';
+    document.getElementById('rank-date-to').value   = '';
+    rankDateFrom = null; rankDateTo = null;
+    renderTable(getFiltered());
+  }
+  function toggleRankDir() {
+    rankDir = -rankDir;
+    const btn = document.getElementById('btn-rank-dir');
+    if (btn) btn.textContent = rankDir === -1 ? '↓ Maior primeiro' : '↑ Menor primeiro';
+    renderTable(getFiltered());
+  }
+
+  function setRankSort(col) {
+    if (rankSort === col) { toggleRankDir(); return; }
+    rankSort = col; rankDir = -1;
+    document.querySelectorAll('#sort-btns .sort-btn').forEach(b => b.classList.remove('active'));
+    const clicked = [...document.querySelectorAll('#sort-btns .sort-btn')].find(b =>
+      b.getAttribute('onclick') === `setRankSort('${col}')`);
+    if (clicked) clicked.classList.add('active');
+    const dirBtn = document.getElementById('btn-rank-dir');
+    if (dirBtn) dirBtn.textContent = '↓ Maior primeiro';
+    renderTable(getFiltered());
+  }
+
+  const RANK_COLS = [
+    { key:'#',             label:'#',          sortKey:null,            align:'left'  },
+    { key:'title',         label:'Título',      sortKey:null,            align:'left'  },
+    { key:'channel',       label:'Canal',       sortKey:'channel',       align:'left'  },
+    { key:'videoType',     label:'Tipo',        sortKey:'videoType',     align:'left'  },
+    { key:'duration',      label:'Duração',     sortKey:'durationSecs',  align:'left'  },
+    { key:'views24h',      label:'Views',       sortKey:'views24h',      align:'right' },
+    { key:'impressions',   label:'Impressões',  sortKey:'impressions',   align:'right' },
+    { key:'ctrStudio',     label:'CTR Studio',  sortKey:'ctrStudio',     align:'right' },
+    { key:'retention30s',  label:'Ret. 30s',    sortKey:'retention30s',  align:'right' },
+    { key:'retentionMedia',label:'Ret. Média',  sortKey:'retentionMedia',align:'right' },
+    { key:'retentionFinal',label:'Ret. Final',  sortKey:'retentionFinal',align:'right' },
+  ];
+
   function renderTable(vids) {
-    const top10 = [...vids].filter(v => v.views24h != null)
-      .sort((a,b) => b.views24h - a.views24h).slice(0,10);
-    if (!top10.length) {
-      document.getElementById('table-top10').innerHTML =
-        '<p class="text-slate-600 text-sm py-4">Nenhum vídeo com os filtros atuais.</p>';
+    const wrap = document.getElementById('rank-table-wrap');
+
+    // Apply date filter
+    let list = rankDateFrom || rankDateTo
+      ? vids.filter(v => {
+          if (!v.publishDate) return false;
+          if (rankDateFrom && v.publishDate < rankDateFrom) return false;
+          if (rankDateTo   && v.publishDate > rankDateTo)   return false;
+          return true;
+        })
+      : vids;
+
+    // Sort
+    list = [...list].sort((a, b) => {
+      const va = a[rankSort]; const vb = b[rankSort];
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1; if (vb == null) return -1;
+      return rankDir * (va < vb ? -1 : va > vb ? 1 : 0);
+    });
+
+    setText('rank-count', list.length + ' vídeo' + (list.length !== 1 ? 's' : ''));
+
+    if (!list.length) {
+      wrap.innerHTML = '<p class="text-slate-600 text-sm py-4">Nenhum vídeo com os filtros atuais.</p>';
       return;
     }
-    const rows = top10.map((v, i) => `
-      <tr class="data-row border-t border-slate-700/60">
-        <td class="py-3 px-3 text-slate-500 text-sm">${i+1}</td>
-        <td class="py-3 px-3 max-w-xs">
-          ${v.url
-            ? `<a href="${esc(v.url)}" target="_blank" rel="noopener"
-                 class="text-blue-400 hover:text-blue-300 underline text-sm block truncate"
-                 title="${esc(v.title)}">${esc(v.title)||'Ver vídeo'}</a>`
-            : `<span class="text-slate-300 text-sm block truncate">${esc(v.title)}</span>`}
-        </td>
-        <td class="py-3 px-3 whitespace-nowrap">
-          <span class="text-xs px-2 py-0.5 rounded-full font-medium"
-            style="background:${CH_COLORS[v.channel]}22;color:${CH_COLORS[v.channel]}">
-            ${esc(v.channel)}</span>
-        </td>
-        <td class="py-3 px-3 text-slate-400 text-xs whitespace-nowrap">${esc(v.videoType||'—')}</td>
-        <td class="py-3 px-3 text-right font-semibold text-white tabular-nums whitespace-nowrap">${fmtN(v.views24h)}</td>
-        <td class="py-3 px-3 text-right text-slate-400 text-sm tabular-nums whitespace-nowrap">${fmtPct(v.ctrBruto)}</td>
-        <td class="py-3 px-3 text-right text-slate-400 text-sm tabular-nums whitespace-nowrap">${fmtPct(v.ctrStudio)}</td>
-        <td class="py-3 px-3 text-right text-slate-400 text-sm tabular-nums whitespace-nowrap">${fmtPct(v.retentionFinal)}</td>
-      </tr>`).join('');
-    document.getElementById('table-top10').innerHTML = `
-      <table class="w-full text-left">
-        <thead><tr class="text-xs text-slate-600 uppercase tracking-wider">
-          <th class="pb-3 px-3">#</th><th class="pb-3 px-3">Título</th>
-          <th class="pb-3 px-3">Canal</th><th class="pb-3 px-3">Tipo</th>
-          <th class="pb-3 px-3 text-right">Views</th>
-          <th class="pb-3 px-3 text-right">CTR B</th>
-          <th class="pb-3 px-3 text-right">CTR S</th>
-          <th class="pb-3 px-3 text-right">Ret. Final</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>`;
+
+    const thCls = (col) => {
+      let cls = 'pb-2 px-3 text-xs text-slate-600 uppercase tracking-wider';
+      if (col.sortKey) {
+        cls += ' sortable';
+        if (rankSort === col.sortKey) cls += rankDir === -1 ? ' sort-desc' : ' sort-asc';
+      }
+      if (col.align === 'right') cls += ' text-right';
+      return cls;
+    };
+
+    const headers = RANK_COLS.map(col => {
+      const onclick = col.sortKey ? ` onclick="setRankSort('${col.sortKey}')"` : '';
+      return `<th class="${thCls(col)}"${onclick}>${col.label}</th>`;
+    }).join('');
+
+    const rows = list.map((v, i) => {
+      const p = v.perf || {};
+      const titleCell = v.url
+        ? `<a href="${esc(v.url)}" target="_blank" rel="noopener"
+             class="text-blue-400 hover:text-blue-300 underline block truncate max-w-[260px]"
+             title="${esc(v.title)}">${esc(v.title) || 'Ver vídeo'}</a>`
+        : `<span class="text-slate-300 block truncate max-w-[260px]">${esc(v.title)}</span>`;
+      const chBadge = `<span class="text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap"
+        style="background:${CH_COLORS[v.channel]}22;color:${CH_COLORS[v.channel]}">${esc(v.channel)}</span>`;
+      return `<tr class="data-row border-t border-slate-700/60">
+        <td class="py-2.5 px-3 text-slate-500 text-sm">${i+1}</td>
+        <td class="py-2.5 px-3 text-sm">${titleCell}</td>
+        <td class="py-2.5 px-3">${chBadge}</td>
+        <td class="py-2.5 px-3 text-slate-400 text-xs whitespace-nowrap">${esc(v.videoType||'—')}</td>
+        <td class="py-2.5 px-3 text-slate-400 text-xs whitespace-nowrap">${esc(v.duration||'—')}</td>
+        ${perfCell(v.views24h,       fmtN(v.views24h),          p.views)}
+        ${perfCell(v.impressions,    fmtN(v.impressions),        p.impressoes)}
+        ${perfCell(v.ctrStudio,      fmtPct(v.ctrStudio),        p.ctrStudio)}
+        ${perfCell(v.retention30s,   fmtPct(v.retention30s),     p.ret30s)}
+        ${perfCell(v.retentionMedia, fmtPct(v.retentionMedia),   p.retMedia)}
+        ${perfCell(v.retentionFinal, fmtPct(v.retentionFinal),   p.retFinal)}
+      </tr>`;
+    }).join('');
+
+    wrap.innerHTML = `<table class="w-full text-left">
+      <thead class="sticky top-0 bg-slate-800 z-10"><tr>${headers}</tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -661,6 +836,7 @@
     renderHourChart(vids);
     renderABChart(vids);
     renderTimelineChart(vids);
+    renderSubscriberChart();
     renderFunnelChart(vids);
   }
 
@@ -708,14 +884,18 @@
     const palette = ['#6366f1','#3b82f6','#0ea5e9','#06b6d4','#10b981','#f59e0b','#f97316'];
 
     mkChart('chart-weekday', {
-      type: 'bar',
+      type: 'line',
       data: {
         labels,
         datasets: [{
           data,
-          backgroundColor: labels.map((_,i) => palette[i % palette.length] + '88'),
-          borderColor:     labels.map((_,i) => palette[i % palette.length]),
-          borderWidth: 1, borderRadius: 4, borderSkipped: false,
+          borderColor: '#818cf8',
+          backgroundColor: '#818cf820',
+          borderWidth: 2,
+          pointRadius: 5, pointHoverRadius: 7,
+          pointBackgroundColor: labels.map((_,i) => palette[i % palette.length]),
+          pointBorderColor: '#0f172a',
+          tension: 0.35, fill: true,
         }]
       },
       options: {
@@ -738,14 +918,18 @@
     const entries = Object.entries(map).sort((a,b) => parseInt(a[0]) - parseInt(b[0]));
 
     mkChart('chart-hour', {
-      type: 'bar',
+      type: 'line',
       data: {
         labels: entries.map(([k]) => k),
         datasets: [{
           data: entries.map(([,v]) => Math.round(v)),
-          backgroundColor: '#8b5cf660',
           borderColor: '#a78bfa',
-          borderWidth: 1, borderRadius: 4, borderSkipped: false,
+          backgroundColor: '#8b5cf620',
+          borderWidth: 2,
+          pointRadius: 4, pointHoverRadius: 7,
+          pointBackgroundColor: '#a78bfa',
+          pointBorderColor: '#0f172a',
+          tension: 0.35, fill: true,
         }]
       },
       options: {
@@ -774,8 +958,8 @@
       return;
     }
 
-    const labels = ['CTR Bruto','CTR Studio','Ret. 30s','Ret. Média','Ret. Final'];
-    const fields = ['ctrBruto','ctrStudio','retention30s','retentionMedia','retentionFinal'];
+    const labels = ['CTR Studio','Ret. 30s','Ret. Média','Ret. Final'];
+    const fields = ['ctrStudio','retention30s','retentionMedia','retentionFinal'];
     const calcRow = g => fields.map(f => { const a = avg(g.map(v => v[f])); return a != null ? parseFloat((a*100).toFixed(2)) : null; });
 
     const datasets = [];
@@ -900,6 +1084,66 @@
         scales: {
           x: { ...AX, ticks: { ...AX.ticks, callback: v => fmtN(v) } },
           y: { ...AX },
+        },
+      },
+    });
+  }
+
+  // ─── 7. Inscritos ───────────────────────────────────────────────────────────
+  function renderSubscriberChart() {
+    const ph = document.getElementById('ph-subscribers');
+    if (!allSubscribers.length) {
+      if (CHARTS['chart-subscribers']) { CHARTS['chart-subscribers'].destroy(); delete CHARTS['chart-subscribers']; }
+      if (ph) { ph.style.display = 'flex'; ph.textContent = 'Sem dados de inscritos'; }
+      return;
+    }
+
+    const sorted = [...allSubscribers].filter(s => s.date).sort((a,b) => a.date - b.date);
+    const labels = sorted.map(s => fmtDateShort(s.date));
+
+    const channels = ['Principal','Militares','Superiores'];
+    const keys     = ['principal','militares','superiores'];
+    const datasets = channels
+      .map((ch, i) => {
+        const data = sorted.map(s => s[keys[i]]);
+        if (data.every(d => d == null)) return null;
+        return {
+          label: ch,
+          data,
+          borderColor:       CH_COLORS[ch],
+          backgroundColor:   CH_COLORS[ch] + '18',
+          borderWidth: 2,
+          pointRadius: 4, pointHoverRadius: 7,
+          pointBackgroundColor: CH_COLORS[ch],
+          pointBorderColor: '#0f172a',
+          tension: 0.35, fill: false, spanGaps: true,
+        };
+      })
+      .filter(Boolean);
+
+    if (!datasets.length) {
+      if (ph) { ph.style.display = 'flex'; ph.textContent = 'Sem dados de inscritos'; }
+      return;
+    }
+
+    mkChart('chart-subscribers', {
+      type: 'line',
+      data: { labels, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: true, labels: { color:'#94a3b8', usePointStyle:true, pointStyleWidth:8, font:{size:11} } },
+          tooltip: {
+            ...TT,
+            callbacks: {
+              label: c => c.raw != null ? '  ' + c.dataset.label + ': ' + fmtN(c.raw) : null,
+            },
+          },
+        },
+        scales: {
+          x: { ...AX, ticks: { ...AX.ticks, maxTicksLimit: 12, maxRotation: 45 } },
+          y: { ...AX, ticks: { ...AX.ticks, callback: v => fmtN(v) } },
         },
       },
     });
