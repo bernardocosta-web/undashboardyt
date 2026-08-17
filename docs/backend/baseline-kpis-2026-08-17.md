@@ -4,7 +4,8 @@ Referência capturada **antes** de qualquer modificação no `index.html`, confo
 bloco P1–P4 da Task 4 do plano de estabilização. As Tasks 4 e 5 têm de reproduzir
 estes valores exatamente.
 
-- **Payload:** `tests/fixtures/exec-payload.json`
+- **Payload:** `tests/fixtures/exec-payload.json` — **local, não versionado**
+  (dados comerciais; ver `tests/fixtures/README.md`)
 - **`timestamp` do backend:** `2026-08-17T19:57:45.831Z` (17/08/2026, 16:57:45)
 - **HTTP:** 200, `application/json; charset=utf-8`, 88.604 chars, ~5,4 s
 - **Commit do `index.html` de referência:** o versionado em `main` / `467eea5`,
@@ -26,6 +27,13 @@ cláusulas conferidas uma a uma). O caminho dado→número é, portanto, o mesmo
 > esses, a conferência visual das Tasks 4 e 5 continua sendo feita a olho, contra o
 > site público. Este arquivo elimina a ambiguidade dos **números**, que é a parte
 > onde erro silencioso engana decisão de conteúdo.
+
+> **⚠ Não confira contra a fixture anonimizada.** Os números abaixo vêm do payload
+> **real**, que não é versionado. A `tests/fixtures/exec-payload-anon.json` tem
+> métricas escaladas de propósito e produz KPIs diferentes (ex.: `503,6K` em vez de
+> `476,1K` em `kpi-views`). Comparar com ela daria divergência em todos os KPIs e
+> seria **falso positivo de regressão**. A conferência é contra o dashboard real —
+> site público, ou servidor local consumindo o `/exec` de verdade.
 
 ## Composição do conjunto
 
