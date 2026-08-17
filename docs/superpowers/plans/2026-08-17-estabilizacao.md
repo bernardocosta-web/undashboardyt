@@ -465,10 +465,42 @@ describe('getFiltered', () => {
 Run: `npx vitest run tests/filters.test.js`
 Expected: FAIL — módulo inexistente
 
+- [ ] **Step 1b: Conferir as bordas de data ANTES de escrever o teste**
+
+Apurado em `index.html:557-558`. A **exclusão** usa `<` e `>` estritos, logo o
+que passa é `>= dateFrom` e `<= dateTo`: **as duas bordas são INCLUSIVAS**. Um
+vídeo publicado exatamente na data-limite entra. Travado no teste com um caso na
+borda exata e outro a 1 ms de distância, que prova que a comparação é estrita.
+
+**Vídeo sem `publishDate`:** excluído sempre que houver qualquer filtro de data
+ativo (`!v.publishDate ||` nas duas cláusulas); mantido se não houver nenhum.
+
+**Armadilha de fuso, travada como comportamento herdado.** As bordas são
+inclusivas, mas os extremos são construídos de formas diferentes
+(`index.html:543-544`):
+
+```js
+filters.dateFrom = new Date(df);                 // 'AAAA-MM-DD'  -> meia-noite UTC
+filters.dateTo   = new Date(dt + 'T23:59:59');   // com hora      -> fim do dia LOCAL
+```
+
+Data pura ISO é interpretada como **UTC**; data com hora, como **local**. Em
+UTC−3 o `dateFrom` portanto começa às **21:00 do dia anterior**, hora local — um
+vídeo publicado em 05/01 às 22:00 entra no filtro "de 06/01". O `dateTo` não tem
+o problema. Os testes travam isso sem depender do fuso da máquina: verificam que
+`dateFrom` é meia-noite UTC por especificação, que `dateTo` responde 23:59:59 nos
+getters locais, e que a janela de vazamento equivale exatamente a
+`getTimezoneOffset()`.
+
+> Preservar. Corrigir a assimetria muda a contagem de vídeos e exige ADR — é o
+> caso clássico de erro que mantém o número plausível.
+
 - [ ] **Step 3: Write minimal implementation**
 
 Portar `getFiltered` para `src/filters.js` recebendo `(allVideos, filters)` em vez
-de ler globais. Manter a mesma lógica de cada cláusula.
+de ler globais. **Única mudança permitida:** a origem do estado de filtros. As
+seis cláusulas são cópia verbatim, na mesma ordem — conferir uma a uma contra
+`index.html:552-560` antes de commitar.
 
 - [ ] **Step 4: Run test to verify it passes**
 
