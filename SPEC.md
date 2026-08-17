@@ -41,6 +41,8 @@ banner "Erro:". Se o `/exec` devolver HTML (página de login do Google), o
 | `publishHour`     | number           | 0–23 — **vem pronto do backend**, ver nota             |
 | `quarter`         | string           | ex. "2025-Q1"; alimenta filtro dinâmico de trimestre   |
 | `videoType`       | string           | normalizado (trim + colapso de espaços)                |
+| `duration`        | string           | exibida na coluna "Duração" (`index.html:782`)          |
+| `durationSecs`    | number           | **só** ordena a coluna Duração — ver nota abaixo        |
 | `views24h`        | number           | views nas primeiras 24h                                |
 | `impressions`     | number           |                                                        |
 | `ctrStudio`       | number (fração)  | **0–1**, exibido ×100                                  |
@@ -48,7 +50,58 @@ banner "Erro:". Se o `/exec` devolver HTML (página de login do Google), o
 | `retentionMedia`  | number (fração)  | **0–1**                                                |
 | `retentionFinal`  | number (fração)  | **0–1**                                                |
 | `abTest`          | boolean          | participou de teste A/B — **boolean**; o filtro homônimo é tri-estado, ver "Contrato — estado de filtros" |
-| `perf`            | object           | `{ <metrica>: "Bom" \| "Médio" \| "Ruim" }` — colore a tabela |
+| `perf`            | object           | colore a tabela — chaves próprias, ver tabela abaixo    |
+
+### `perf` — as chaves NÃO são os nomes dos campos
+
+`perf` é `{ <chave>: "Bom" | "Médio" | "Ruim" }`, mas as chaves são abreviadas e
+em português, e divergem dos nomes das métricas. Lidas em `index.html:783-788`
+como `p.<chave>`, onde `p = v.perf || {}`:
+
+| Chave em `perf` | Colore a métrica | Bate com o nome do campo? |
+|-----------------|------------------|---------------------------|
+| `views`         | `views24h`       | **não**                   |
+| `impressoes`    | `impressions`    | **não** — e em português  |
+| `ctrStudio`     | `ctrStudio`      | sim                       |
+| `ret30s`        | `retention30s`   | **não**                   |
+| `retMedia`      | `retentionMedia` | **não**                   |
+| `retFinal`      | `retentionFinal` | **não**                   |
+
+> Quem reconstruir o payload usando `views24h` como chave do `perf` perde a
+> coloração da tabela — sem erro no console, só células sem cor. Chave ausente cai
+> no `|| {}` e a célula fica neutra.
+
+### `durationSecs` só existe como chave dinâmica
+
+`durationSecs` **nunca** aparece como `v.durationSecs` no código. Ele existe
+apenas como string em `RANK_COLS` (`index.html:716`, `sortKey:'durationSecs'`) e
+é consumido em `index.html:740` via `a[rankSort]`. Por isso não aparece em busca
+textual por `v.<campo>` — foi assim que escapou da primeira versão deste contrato.
+
+> Se a fonte de dados mudar (ADR 0001) e não enviar `durationSecs`, o comparador
+> cai em `va == null && vb == null → return 0` e clicar em "Duração" **não ordena
+> nada**, sem erro. Mesma família de falha silenciosa do `weekday`/`publishHour`.
+
+### Colunas ordenáveis (`RANK_COLS`, `index.html:711-723`)
+
+`rankSort` só assume um destes valores, todos lidos via `a[rankSort]`:
+
+`channel`, `videoType`, `durationSecs`, `views24h`, `impressions`, `ctrStudio`,
+`retention30s`, `retentionMedia`, `retentionFinal`.
+
+As colunas `#` e `Título` têm `sortKey: null` e não são ordenáveis. Note que
+`channel` e `videoType` são **strings** — o comparador usa `<`/`>`, portanto
+ordenação lexicográfica, não alfabética com locale (acentos não são tratados).
+
+**Nulos sempre no fim, nas duas direções.** O comparador testa `va == null`
+*antes* de aplicar `rankDir`, então valores ausentes ficam presos no fim tanto em
+ordem crescente quanto decrescente:
+
+```js
+if (va == null && vb == null) return 0;
+if (va == null) return 1; if (vb == null) return -1;
+return rankDir * (va < vb ? -1 : va > vb ? 1 : 0);
+```
 
 > **`weekday` e `publishHour` são derivados no backend, não no front.** O
 > `fetchData` só espalha o objeto (`...v`) e converte `publishDate`; nunca calcula
@@ -85,8 +138,46 @@ nos dois com **tipos diferentes**.
 | `dateFrom`   | `Date \| null`           | `null`  | `new Date('AAAA-MM-DD')` → meia-noite **UTC**                 |
 | `dateTo`     | `Date \| null`           | `null`  | `new Date('AAAA-MM-DD' + 'T23:59:59')` → fim do dia **local** |
 
-> A assimetria UTC (`dateFrom`) vs. local (`dateTo`) é o comportamento atual.
-> Preservar na refatoração; corrigir é mudança de comportamento e exige ADR.
+### Bordas do intervalo de datas: as duas são INCLUSIVAS
+
+`getFiltered` (`index.html:557-558`):
+
+```js
+if (filters.dateFrom && (!v.publishDate || v.publishDate < filters.dateFrom)) return false;
+if (filters.dateTo   && (!v.publishDate || v.publishDate > filters.dateTo))   return false;
+```
+
+A **exclusão** usa `<` e `>` estritos, então o que passa é `>= dateFrom` e
+`<= dateTo`: **ambas as bordas são inclusivas**. Um vídeo publicado exatamente na
+data-limite entra na contagem. A tabela de ranking repete a mesma semântica em
+`index.html:732-733`, com `rankDateFrom`/`rankDateTo`.
+
+**Vídeo sem `publishDate`:** excluído sempre que houver **qualquer** filtro de
+data ativo (por causa do `!v.publishDate ||`). Sem filtro de data, ele passa.
+
+### A armadilha de fuso que move um vídeo sem ninguém notar
+
+As bordas são inclusivas, mas os dois extremos são **construídos de formas
+diferentes** (`index.html:543-544`):
+
+```js
+filters.dateFrom = df ? new Date(df) : null;                // 'AAAA-MM-DD'      -> meia-noite UTC
+filters.dateTo   = dt ? new Date(dt + 'T23:59:59') : null;  // 'AAAA-MM-DDT…'    -> 23:59:59 LOCAL
+```
+
+Pela especificação de `Date`, uma data pura (`'2025-01-06'`) é interpretada como
+**UTC**, e uma data com hora (`'2025-01-06T23:59:59'`) como **hora local**. Em
+UTC−3, `dateFrom` portanto começa às **21:00 do dia anterior**, hora local.
+
+Consequência concreta: filtrando **de 06/01**, um vídeo publicado em **05/01 às
+22:00 local** entra na contagem — em UTC ele é `2025-01-06T01:00Z`, que é
+posterior a `2025-01-06T00:00Z`. O `dateTo` não tem o problema: 23:59:59 local é
+o fim correto do dia local.
+
+> **Comportamento herdado — preservar na refatoração.** É precisamente o caso de
+> erro que altera a contagem em um vídeo mantendo o número plausível. Corrigir a
+> assimetria é decisão separada, com ADR e com alguém conferindo qual número
+> mudou. Não de carona numa extração de módulo.
 
 ### `abTest`: boolean no vídeo, tri-estado no filtro
 
