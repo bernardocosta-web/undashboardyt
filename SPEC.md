@@ -347,9 +347,26 @@ Exportar PDF (html2canvas → jsPDF, com fatiamento multi-página).
 
    Solução conhecida: leitura por navegador (Cowork) ou repensar a fonte — ver
    `docs/decisions/0001`.
-2. **Snapshot único de 24h** — não há série temporal por vídeo (48h/7d/28d/vida).
-3. **Retenção como número, não curva** — sem `elapsedVideoTimeRatio`, não dá pra
+2. **Cobertura: o dashboard vê 4,42% do acervo.** O `/exec` devolve a janela de
+   **janeiro/2026 em diante** — 149 vídeos. O acervo histórico completo tem
+   **3.370**: Militares 1.835, Principal 1.522, Superiores 13. **3.221 vídeos são
+   invisíveis ao dashboard.**
+
+   | Canal | Acervo | No payload | Cobertura |
+   |-------|-------:|-----------:|----------:|
+   | Militares  | 1.835 |  92 |  5,0% |
+   | Principal  | 1.522 |  49 |  3,2% |
+   | Superiores |    13 |   8 | 61,5% |
+   | **Total**  | **3.370** | **149** | **4,42%** |
+
+   O corte **não é aleatório**: exclui os vídeos mais antigos, que são exatamente
+   aqueles onde a cauda longa seria observável. E é muito desigual entre canais —
+   61,5% em Superiores contra 3,2% em Principal, então comparações entre canais
+   hoje comparam amostras de qualidade diferente. Ver `docs/decisions/0002`.
+
+3. **Snapshot único de 24h** — não há série temporal por vídeo (48h/7d/28d/vida).
+4. **Retenção como número, não curva** — sem `elapsedVideoTimeRatio`, não dá pra
    ver onde a audiência abandona.
-4. **Sem elo com o negócio** — o funil para em "assistiram até o fim"; não chega
+5. **Sem elo com o negócio** — o funil para em "assistiram até o fim"; não chega
    a clique → lead → matrícula.
-5. **Monólito** — tudo em um `index.html`, difícil de evoluir com segurança.
+6. **Monólito** — tudo em um `index.html`, difícil de evoluir com segurança.
