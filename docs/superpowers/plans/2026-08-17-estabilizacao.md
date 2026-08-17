@@ -243,6 +243,42 @@ describe('calcKPIs', () => {
 > O último teste é o que dá sentido à Task 0: compara a implementação nova com a
 > saída do monólito original, não com um número que alguém digitou à mão.
 
+- [ ] **Step 1b: Propriedade `top80avg(xs) >= avg(xs)`**
+
+Implementada em `tests/lib/math.test.js`, no `describe('propriedade …')`.
+
+**O que ela NÃO cobre:** ordenação invertida. Esse caso já cai no assert exato
+de n=10 acima — o correto é `52/8 = 6.5` e o invertido daria `36/8 = 4.5`, então
+o assert quebra sozinho. Registrar isso importa para ninguém acher que a
+propriedade é redundante com ele, nem que cobre o que não cobre.
+
+**O que ela cobre:** generalidade sobre `n`. O assert exato trava um único
+tamanho de entrada; o corte `floor(n*0.8)` muda de comportamento conforme `n`:
+
+| `n` | `floor(n*0.8)` | observação |
+|-----|----------------|------------|
+| 1   | 0              | resgatado por `Math.max(1, 0)` |
+| 2   | 1              | o top80 fica com **um** elemento (= o máximo) |
+| 3   | 2              | |
+| 7   | 5              | |
+| 10  | 8              | o único caso coberto pelo assert exato |
+
+Uma alteração em `Math.max(1, …)`, no `floor` (trocado por `ceil`/`round`) ou no
+fator `0.8` pode manter n=10 correto e estragar n=1, 2 ou 3.
+
+A relação é garantia matemática, não coincidência da fixture: a média dos `k`
+maiores de `n` valores é sempre ≥ a média dos `n`.
+
+Casos exercitados: **n=1, 2, 3, 7, 10**; **todos os valores iguais** (tem de dar
+igualdade — é por isso que o operador é `>=` e não `>`); **com duplicatas**;
+**lista vazia**; **lista só de inválidos**; e os **6 arrays reais da fixture**.
+
+**Borda definida:** quando não sobra nenhum valor válido após o filtro, `avg` e
+`top80avg` retornam **os dois** `null` — é a mesma condição nas duas funções
+(`v.length === 0`). O helper compara `null` com `null` e **não** usa `>=`, porque
+em JS `null >= null` coage para `0 >= 0` e passaria por acidente, escondendo uma
+eventual troca de `null` por `0` no retorno.
+
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/lib/math.test.js`
@@ -262,9 +298,14 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/lib/math.js tests/lib/math.test.js tests/fixtures/videos.sample.json
+git add src/lib/math.js tests/lib/math.test.js
 git commit -m "refactor: extrai lib de matemática pura com testes"
 ```
+
+> As fixtures **não** entram aqui — já foram versionadas na Task 0. Antes de
+> commitar, conferir que a cópia é verbatim: normalizando espaços e o `export`, o
+> corpo de `src/lib/math.js` tem de ser idêntico às linhas 566-600 do
+> `index.html`. Divergência aqui significa que alguém "melhorou" a lógica.
 
 ---
 
