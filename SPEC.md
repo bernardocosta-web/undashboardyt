@@ -20,9 +20,26 @@ Resposta esperada (JSON):
 {
   "videos":      [ /* objeto de vídeo, ver abaixo */ ],
   "subscribers": [ /* objeto de inscrito, ver abaixo */ ],
-  "timestamp":   1699999999999      // ms ou ISO; exibido como "Atualizado em ..."
+  "timestamp":   "2026-08-17T19:57:45.831Z",   // ISO string; exibido como "Atualizado em ..."
+  "debug":       { /* diagnóstico do backend — o front NÃO lê, ver abaixo */ }
 }
 ```
+
+**`debug` — quarta chave de topo, não consumida pelo front.** Presente no payload
+real e útil para diagnóstico:
+
+| Campo             | Tipo       | Observado em 17/08/2026                          |
+|-------------------|------------|--------------------------------------------------|
+| `sheetsFound`     | string[]   | 20 abas, incluindo 5 prefixadas `_OLD_`          |
+| `channelSheets`   | string[]   | `["Principal","Militares","Superiores"]`         |
+| `hasConsolidated` | boolean    | `false`                                          |
+| `hasSubscriber`   | boolean    | `false` — corrobora a limitação de inscritos     |
+
+> `hasSubscriber: false` é o próprio backend informando que não obteve dados de
+> inscritos. Confirma, do lado do servidor, que o gráfico 7 vazio é limitação de
+> permissão e não falha de carregamento. Vale checar aqui antes de suspeitar do
+> front. O `timestamp` chega como **string ISO**, não como milissegundos — o
+> `new Date(data.timestamp)` do `index.html:467` aceita os dois.
 
 **Status: operacional.** Verificado em 17/08/2026 — o `/exec` devolve JSON válido,
 inclusive em janela anônima, e o dashboard público renderiza KPIs, gráficos e
@@ -38,22 +55,30 @@ caso ele apareça algum dia, ver `docs/backend/runbook-diagnostico.md` (preventi
 
 | Campo             | Tipo             | Observação                                              |
 |-------------------|------------------|--------------------------------------------------------|
+> **Verificado contra payload real em 17/08/2026** (149 vídeos,
+> `tests/fixtures/exec-payload.json`). Os tipos e formatos abaixo são os
+> observados, não os supostos.
+
+| Campo             | Tipo             | Observação                                              |
+|-------------------|------------------|--------------------------------------------------------|
+| `id`              | string           | `"Militares_20260108_planodetalha"` ou `""` (vazio em 49/149). **O front não lê este campo** |
 | `channel`         | string           | "Principal" \| "Militares" \| "Superiores"             |
 | `title`           | string           |                                                        |
 | `url`             | string           | link do vídeo                                          |
-| `publishDate`     | string→Date      | parseado com `new Date()`                              |
+| `publishDate`     | string→Date      | **`"AAAA-MM-DD"`, sem hora** → `new Date()` interpreta como meia-noite **UTC**. Ver nota |
 | `weekday`         | string           | `"Seg"`…`"Dom"` — **vem pronto do backend**, ver nota  |
-| `publishHour`     | number           | 0–23 — **vem pronto do backend**, ver nota             |
-| `quarter`         | string           | ex. "2025-Q1"; alimenta filtro dinâmico de trimestre   |
-| `videoType`       | string           | normalizado (trim + colapso de espaços)                |
-| `duration`        | string           | exibida na coluna "Duração" (`index.html:782`)          |
+| `publishHour`     | string           | **`"9h"`, `"12h"`, `"13h"`, `"15h"`, `"18h"` — STRING com sufixo "h", não número.** Ver nota |
+| `quarter`         | string           | **`"1ºT"` \| `"2ºT"` — sem ano.** Ver nota             |
+| `videoType`       | string           | normalizado (trim + colapso de espaços); 11 valores distintos |
+| `duration`        | string           | `"MM:SS"` ou `"H:MM:SS"` — exibida na coluna "Duração" (`index.html:782`) |
+| `durationRange`   | string           | `"<8min"` \| `"8-14min"` \| `"14-30min"` \| `"30min+"`. **O front não lê este campo** |
 | `durationSecs`    | number           | **só** ordena a coluna Duração — ver nota abaixo        |
 | `views24h`        | number           | views nas primeiras 24h                                |
 | `impressions`     | number           |                                                        |
 | `ctrStudio`       | number (fração)  | **0–1**, exibido ×100                                  |
-| `retention30s`    | number (fração)  | **0–1**                                                |
-| `retentionMedia`  | number (fração)  | **0–1**                                                |
-| `retentionFinal`  | number (fração)  | **0–1**                                                |
+| `retention30s`    | number \| null   | fração **0–1**; **nulo observado** (1/149)             |
+| `retentionMedia`  | number (fração)  | **0–1**; sem nulos na amostra                          |
+| `retentionFinal`  | number \| null   | fração **0–1**; **nulo observado** (1/149)             |
 | `abTest`          | boolean          | participou de teste A/B — **boolean**; o filtro homônimo é tri-estado, ver "Contrato — estado de filtros" |
 | `perf`            | object           | colore a tabela — chaves próprias, ver tabela abaixo    |
 
@@ -72,9 +97,14 @@ como `p.<chave>`, onde `p = v.perf || {}`:
 | `retMedia`      | `retentionMedia` | **não**                   |
 | `retFinal`      | `retentionFinal` | **não**                   |
 
+Valores observados no payload real: `"Bom"`, `"Médio"`, `"Ruim"` e **`""`** (string
+vazia — 1 ocorrência em `ret30s` e 1 em `retFinal`). As seis chaves estavam
+presentes em 149/149 vídeos.
+
 > Quem reconstruir o payload usando `views24h` como chave do `perf` perde a
 > coloração da tabela — sem erro no console, só células sem cor. Chave ausente cai
-> no `|| {}` e a célula fica neutra.
+> no `|| {}` e a célula fica neutra. **String vazia também** produz célula neutra,
+> e é um estado válido que o backend emite.
 
 ### `durationSecs` só existe como chave dinâmica
 
@@ -116,6 +146,29 @@ return rankDir * (va < vb ? -1 : va > vb ? 1 : 0);
 > trouxer esses dois campos, os dois gráficos ficam **vazios sem erro** — o
 > `groupAvg` descarta chave `null` silenciosamente. Quem trocar a fonte precisa
 > derivá-los ou mover o cálculo para `src/data.js`.
+
+> **`publishHour` é string com sufixo, não número.** Os valores são `"9h"`,
+> `"12h"`, `"13h"`, `"15h"`, `"18h"`. Funciona porque o `groupAvg` usa o valor como
+> **chave de objeto** (que já seria string de qualquer forma) e a ordenação do
+> gráfico 3 faz `parseInt(a[0])` — e `parseInt("15h")` é `15`. Quem "limpar" esse
+> campo para número precisa conferir a ordenação; quem comparar com `===` a um
+> número vai falhar em silêncio.
+
+> **`quarter` não tem ano.** Os valores são `"1ºT"` e `"2ºT"`. Isso significa que
+> o filtro de trimestre **não distingue anos**: um "1ºT" de 2026 e um de 2027 caem
+> no mesmo grupo. Hoje o payload cobre um único ano, então não aparece; com dois
+> anos de histórico o filtro passa a somar trimestres de anos diferentes sem aviso.
+> Não é bug do front — é o formato que o backend envia. Corrigir exige mudar o
+> contrato (SPEC + ADR).
+
+> **`publishDate` não tem hora, e isso mascara a armadilha de fuso.** Como o valor
+> é `"AAAA-MM-DD"` puro, `new Date()` produz sempre **meia-noite UTC**. Combinado
+> com as bordas de data (ver "Contrato — estado de filtros"), o efeito é que hoje o
+> filtro se comporta corretamente por dia de calendário — o vazamento de fuso
+> descrito lá **não pode se materializar**, porque nenhum vídeo tem hora do dia.
+> A hora existe, mas mora em `publishHour`, separada. **O defeito é latente:** se
+> algum dia o `publishDate` passar a carregar hora, o vazamento vira real
+> imediatamente. Ver a nota correspondente na seção de filtros.
 
 ## Contrato — objeto de inscrito
 
@@ -175,10 +228,25 @@ Pela especificação de `Date`, uma data pura (`'2025-01-06'`) é interpretada c
 **UTC**, e uma data com hora (`'2025-01-06T23:59:59'`) como **hora local**. Em
 UTC−3, `dateFrom` portanto começa às **21:00 do dia anterior**, hora local.
 
-Consequência concreta: filtrando **de 06/01**, um vídeo publicado em **05/01 às
-22:00 local** entra na contagem — em UTC ele é `2025-01-06T01:00Z`, que é
-posterior a `2025-01-06T00:00Z`. O `dateTo` não tem o problema: 23:59:59 local é
-o fim correto do dia local.
+Consequência **em teoria**: filtrando de 06/01, um vídeo publicado em 05/01 às
+22:00 local entraria na contagem — em UTC ele seria `2025-01-06T01:00Z`, posterior
+a `2025-01-06T00:00Z`. O `dateTo` não tem o problema: 23:59:59 local é o fim
+correto do dia local.
+
+> **Correção de 17/08/2026, após verificar o payload real: hoje esse vazamento
+> NÃO se materializa.** O backend envia `publishDate` como `"AAAA-MM-DD"` puro,
+> sem hora, então toda data de publicação também é meia-noite UTC — igual à borda.
+> Nenhum vídeo tem hora do dia para cair na janela de 3 horas. A hora existe, mas
+> num campo separado (`publishHour`), que o filtro de data não consulta.
+>
+> **O defeito é latente, não ativo.** Ele passa a valer no instante em que o
+> `publishDate` carregar hora — por exemplo se a fonte mudar pelo ADR 0001, ou se
+> alguém "melhorar" o backend para enviar timestamp completo. Os testes em
+> `tests/filters.test.js` travam a mecânica com datas sintéticas que **têm** hora,
+> justamente para o comportamento estar documentado antes de a mudança acontecer.
+>
+> Uma versão anterior desta nota descrevia o vazamento como se já estivesse
+> acontecendo. Estava incorreto para os dados atuais.
 
 > **Comportamento herdado — preservar na refatoração.** É precisamente o caso de
 > erro que altera a contagem em um vídeo mantendo o número plausível. Corrigir a
