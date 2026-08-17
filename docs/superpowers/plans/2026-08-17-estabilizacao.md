@@ -46,23 +46,55 @@ desmontado, ela desaparece. Esta task materializa a referência em disco **antes
 de qualquer extração.
 
 **Files:**
+- Create: `package.json`
 - Create (fixture): `tests/fixtures/videos.sample.json`
 - Create (descartável): `scripts/baseline-snapshot.mjs`
 - Create (saída): `tests/fixtures/golden.json`
+
+- [ ] **Step 0: Preparar o ambiente de teste**
+
+Absorve o que era o passo 5.2 do `COMECE-AQUI.md`, para guia e plano não se
+contradizerem. Criar `package.json` com `"type": "module"` e os scripts:
+
+```jsonc
+"scripts": {
+  "test":       "vitest run",
+  "test:watch": "vitest",
+  "baseline":   "node scripts/baseline-snapshot.mjs"
+}
+```
+
+Instalar com `npm install --save-dev vitest` (deixar o npm resolver a versão em
+vez de fixar um número à mão) e confirmar que `node_modules/` é ignorado:
+
+```bash
+git check-ignore -v node_modules   # deve casar com .gitignore:1
+```
+
+`npm test` aqui responde "No test files found, exiting with code 1" — correto
+neste ponto, porque os testes só nascem na Task 1.
 
 - [ ] **Step 1: Montar a fixture sintética**
 
 `tests/fixtures/videos.sample.json` com **10 vídeos** (10 é o mínimo para o corte
 do `top80avg` ser observável: `floor(10*0.8)=8`, descarta 2). Requisitos:
 
-- `ctrStudio` em torno de **0,083** com dispersão real (ex.: `0.041, 0.058,
-  0.067, 0.075, 0.083, 0.083, 0.091, 0.104, 0.112, 0.121`) — média ≈ 0,0835.
+- `ctrStudio` com dispersão real e **média exatamente 0,083**. Valores usados:
+  `0.041, 0.055, 0.067, 0.075, 0.083, 0.083, 0.091, 0.104, 0.111, 0.120`
+  (soma 0,830 ÷ 10). **Atenção:** média 0,0835 **reprova** o assert
+  `toBeCloseTo(0.083, 3)` da Task 1 — a tolerância é `< 0,0005` e 0,0835 cai
+  exatamente no limite, onde a comparação é estrita. A média tem de ser 0,083.
 - `retention30s`, `retentionMedia`, `retentionFinal` variadas em 0–1, com
   `retentionFinal` sempre ≤ `retentionMedia` ≤ `retention30s`.
 - Os 3 canais, ≥2 `quarter`, ≥3 `videoType`, `abTest` misturando `true` e
   `false` (**boolean**, ver "Contrato — estado de filtros" no SPEC).
-- `publishDate` cobrindo os 7 dias da semana e horários distintos, para
-  exercitar o `groupAvg` por dia e por hora.
+- **`weekday` e `publishHour` preenchidos em todos os vídeos.** Os gráficos 2 e
+  3 leem esses dois campos **direto do payload** — o front não os calcula a
+  partir de `publishDate` (ver `index.html:880` e `:917`). Sem eles,
+  `porDiaSemana` e `porHora` saem vazios no golden e a lacuna passa batido.
+- `publishDate` coerente com `weekday`, cobrindo os 7 dias da semana, e
+  `publishHour` com horas repetidas e distintas, para o `groupAvg` ter buckets
+  de 1 e de vários itens.
 - **Pelo menos um `null` e um valor não numérico** em `views24h`/`impressions`,
   para travar o descarte de `null`/`NaN` em `avg`/`sum`/`groupAvg`.
 
@@ -97,9 +129,15 @@ inválido — refazer o Step 2.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add tests/fixtures/videos.sample.json tests/fixtures/golden.json scripts/baseline-snapshot.mjs
+git add package.json package-lock.json tests/fixtures scripts/baseline-snapshot.mjs
 git commit -m "test: congela baseline das funções puras antes da refatoração"
 ```
+
+**Propriedade a preservar:** o `golden.json` é gravado **sem timestamp**, de
+propósito. Rodar `npm run baseline` de novo produz um arquivo byte a byte
+idêntico (confirmado por hash). Se um dia o hash mudar sem ninguém ter mexido na
+fixture, alguém alterou as funções copiadas — e isso é exatamente o alarme que
+esta task existe para disparar.
 
 > `scripts/baseline-snapshot.mjs` é descartável: pode ser removido no fim da
 > Task 3, quando os módulos já reproduzem o `golden.json`. As duas fixtures

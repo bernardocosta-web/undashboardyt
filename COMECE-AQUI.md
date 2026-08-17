@@ -292,19 +292,47 @@ antes de responder".
 > Este passo é barato e evita o cenário caro: descobrir que ele entendeu errado
 > depois de cinco arquivos alterados.
 
-## 5.2 Preparar o ambiente de teste
+## 5.2 Preparar o ambiente de teste — **já feito na Task 0**
 
-- [ ] Cole:
+Este passo era um pedido solto para configurar o vitest. Ele foi absorvido pela
+**Task 0 do plano** (Step 0), junto com o congelamento do baseline, para o guia
+não contradizer o plano. **Não cole mais o texto antigo aqui** — você criaria um
+`package.json` duplicado.
+
+O que a Task 0 já deixou pronto:
+
+- `package.json` com `vitest` em `devDependencies` e os scripts `test`,
+  `test:watch` e `baseline`;
+- `node_modules/` instalado e ignorado pelo git (via `.gitignore`);
+- `tests/fixtures/videos.sample.json` — a fixture sintética;
+- `tests/fixtures/golden.json` — a referência congelada que as Tasks 1 a 3
+  precisam reproduzir.
+
+- [ ] Confirme que está tudo no lugar rodando no terminal:
+
+```bash
+npm test
+```
+
+Na primeira vez a resposta esperada é exatamente esta:
 
 ```
-Configure o vitest neste projeto. Crie o package.json com vitest como
-devDependency e um script "test". Rode a instalação e me mostre um teste
-de exemplo passando. Não toque no index.html ainda.
+RUN  v4.1.10
+No test files found, exiting with code 1
 ```
 
-> O vitest é o programa que roda os testes. Vai aparecer uma pasta
-> `node_modules` com as dependências — isso é normal, e ela não vai para o
-> GitHub.
+**Isso está certo, apesar do "code 1".** O vitest trata "nenhum teste" como
+falha, e aqui é o esperado: o ambiente existe, mas os testes só nascem na
+Task 1. O que você não quer ver é "command not found" ou erro de módulo — nesse
+caso rode `npm install` antes de seguir.
+
+> O vitest é o programa que roda os testes. A pasta `node_modules` com as
+> dependências é normal e não vai para o GitHub.
+
+> **Se você está retomando o projeto do zero** (clone novo, sem `node_modules`):
+> rode `npm install` e depois `npm run baseline`. O `golden.json` é
+> determinístico — regerá byte a byte igual, então não há risco de sobrescrever a
+> referência com valores diferentes.
 
 ## 5.3 Executar a Task 1
 

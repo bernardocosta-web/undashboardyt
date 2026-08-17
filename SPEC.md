@@ -37,6 +37,8 @@ banner "Erro:". Se o `/exec` devolver HTML (página de login do Google), o
 | `title`           | string           |                                                        |
 | `url`             | string           | link do vídeo                                          |
 | `publishDate`     | string→Date      | parseado com `new Date()`                              |
+| `weekday`         | string           | `"Seg"`…`"Dom"` — **vem pronto do backend**, ver nota  |
+| `publishHour`     | number           | 0–23 — **vem pronto do backend**, ver nota             |
 | `quarter`         | string           | ex. "2025-Q1"; alimenta filtro dinâmico de trimestre   |
 | `videoType`       | string           | normalizado (trim + colapso de espaços)                |
 | `views24h`        | number           | views nas primeiras 24h                                |
@@ -47,6 +49,15 @@ banner "Erro:". Se o `/exec` devolver HTML (página de login do Google), o
 | `retentionFinal`  | number (fração)  | **0–1**                                                |
 | `abTest`          | boolean          | participou de teste A/B — **boolean**; o filtro homônimo é tri-estado, ver "Contrato — estado de filtros" |
 | `perf`            | object           | `{ <metrica>: "Bom" \| "Médio" \| "Ruim" }` — colore a tabela |
+
+> **`weekday` e `publishHour` são derivados no backend, não no front.** O
+> `fetchData` só espalha o objeto (`...v`) e converte `publishDate`; nunca calcula
+> dia da semana nem hora. Os gráficos 2 (views por dia) e 3 (views por horário)
+> leem `v.weekday` e `v.publishHour` diretamente (`index.html:880` e `:917`).
+> Consequência prática: se a fonte de dados mudar (ADR 0001) e o novo payload não
+> trouxer esses dois campos, os dois gráficos ficam **vazios sem erro** — o
+> `groupAvg` descarta chave `null` silenciosamente. Quem trocar a fonte precisa
+> derivá-los ou mover o cálculo para `src/data.js`.
 
 ## Contrato — objeto de inscrito
 

@@ -1,0 +1,51 @@
+{
+  "kpis": {
+    "total": 10,
+    "totalViews": 135500,
+    "avgViews": 15055.555555555555,
+    "totalImpress": 1567000,
+    "avgImpress": 174111.11111111112,
+    "ctrStudioGeral": 0.08299999999999999,
+    "ctrStudioTop80": 0.09174999999999997,
+    "ret30s": 0.717,
+    "retMedia": 0.4779999999999999,
+    "retFinal": 0.30600000000000005
+  },
+  "top80": {
+    "ctrStudio": 0.09174999999999997,
+    "impressions": 187285.7142857143,
+    "views24h": 17542.85714285714
+  },
+  "groupAvg": {
+    "porTipo": {
+      "Aula": 17100,
+      "Short": 12666.666666666666,
+      "Resumo": 14550
+    },
+    "porDiaSemana": {
+      "Seg": 10000,
+      "Ter": 11100,
+      "Qua": 19850,
+      "Qui": 5100,
+      "Sex": 15800,
+      "Dom": 32700
+    },
+    "porHora": {
+      "7": 5100,
+      "9": 10000,
+      "11": 32700,
+      "12": 8300,
+      "18": 19850,
+      "20": 15800,
+      "21": 13900
+    }
+  },
+  "escalares": {
+    "avgVazio": null,
+    "sumVazio": 0,
+    "top80Vazio": null,
+    "top80Unitario": 5,
+    "avgComNulos": 3,
+    "sumComNulos": 60
+  }
+}
