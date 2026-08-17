@@ -27,10 +27,83 @@ vitest para testes de lógica pura; Node 18+.
 
 ## Pré-requisito (fora do TDD): restaurar os dados
 
-Antes da Task 1, seguir `docs/backend/runbook-diagnostico.md` até o `/exec`
-devolver JSON válido. Registrar a causa no ADR 0001. Sem dados fluindo, os testes
-de lógica pura ainda passam (usam fixtures), mas a validação visual do "mesmo
-comportamento" depende de o dashboard carregar.
+Seguir `docs/backend/runbook-diagnostico.md` até o `/exec` devolver JSON válido.
+Registrar a causa no ADR 0001.
+
+**O que isso bloqueia, e o que não bloqueia:** as **Tasks 0 a 3** rodam sem
+backend — usam a fixture sintética da Task 0. As **Tasks 4 e 5** ficam
+bloqueadas, porque a validação de "mesmo comportamento" é visual e exige o
+dashboard carregando com dados reais (ver o bloco P1–P4 na Task 4). Ou seja: dá
+para começar a refatoração hoje, mas não para terminá-la.
+
+---
+
+### Task 0: Congelar baseline (antes de tocar em qualquer coisa)
+
+**Por que primeiro:** o plano exige "os números depois têm de bater com os de
+antes", mas a referência mora dentro do monólito. Assim que o `index.html` for
+desmontado, ela desaparece. Esta task materializa a referência em disco **antes**
+de qualquer extração.
+
+**Files:**
+- Create (fixture): `tests/fixtures/videos.sample.json`
+- Create (descartável): `scripts/baseline-snapshot.mjs`
+- Create (saída): `tests/fixtures/golden.json`
+
+- [ ] **Step 1: Montar a fixture sintética**
+
+`tests/fixtures/videos.sample.json` com **10 vídeos** (10 é o mínimo para o corte
+do `top80avg` ser observável: `floor(10*0.8)=8`, descarta 2). Requisitos:
+
+- `ctrStudio` em torno de **0,083** com dispersão real (ex.: `0.041, 0.058,
+  0.067, 0.075, 0.083, 0.083, 0.091, 0.104, 0.112, 0.121`) — média ≈ 0,0835.
+- `retention30s`, `retentionMedia`, `retentionFinal` variadas em 0–1, com
+  `retentionFinal` sempre ≤ `retentionMedia` ≤ `retention30s`.
+- Os 3 canais, ≥2 `quarter`, ≥3 `videoType`, `abTest` misturando `true` e
+  `false` (**boolean**, ver "Contrato — estado de filtros" no SPEC).
+- `publishDate` cobrindo os 7 dias da semana e horários distintos, para
+  exercitar o `groupAvg` por dia e por hora.
+- **Pelo menos um `null` e um valor não numérico** em `views24h`/`impressions`,
+  para travar o descarte de `null`/`NaN` em `avg`/`sum`/`groupAvg`.
+
+- [ ] **Step 2: Copiar as funções puras, sem alterar nada**
+
+`scripts/baseline-snapshot.mjs` recebe `avg`, `sum`, `top80avg`, `groupAvg` e
+`calcKPIs` **copiados verbatim** do `index.html` (linhas ~566–600). Copiar, não
+melhorar: se a função parecer estranha, ela fica estranha. Qualquer "correção"
+aqui envenena a referência e o resto do plano passa a validar contra o valor
+errado.
+
+- [ ] **Step 3: Gerar o golden**
+
+Rodar e gravar `tests/fixtures/golden.json` com, no mínimo:
+
+```jsonc
+{
+  "kpis":       { /* calcKPIs(videos) completo, 10 chaves */ },
+  "top80":      { "ctrStudio": 0.0, "impressions": 0.0 },
+  "groupAvg":   { "porTipo": {}, "porDiaSemana": {}, "porHora": {} },
+  "escalares":  { "avgVazio": null, "sumVazio": 0 }
+}
+```
+
+- [ ] **Step 4: Conferir o golden a olho antes de confiar nele**
+
+Checagem obrigatória: em `kpis`, os campos `ctrStudioGeral`, `ctrStudioTop80`,
+`ret30s`, `retMedia` e `retFinal` têm de estar **entre 0 e 1**. Se algum vier
+como 8.3 em vez de 0.083, a cópia introduziu um `×100` e o baseline está
+inválido — refazer o Step 2.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add tests/fixtures/videos.sample.json tests/fixtures/golden.json scripts/baseline-snapshot.mjs
+git commit -m "test: congela baseline das funções puras antes da refatoração"
+```
+
+> `scripts/baseline-snapshot.mjs` é descartável: pode ser removido no fim da
+> Task 3, quando os módulos já reproduzem o `golden.json`. As duas fixtures
+> **ficam** — são a rede de segurança das Tasks 1 a 3.
 
 ---
 
@@ -39,7 +112,7 @@ comportamento" depende de o dashboard carregar.
 **Files:**
 - Create: `src/lib/math.js`
 - Test: `tests/lib/math.test.js`
-- Create (fixture): `tests/fixtures/videos.sample.json`
+- Consumes (da Task 0): `tests/fixtures/videos.sample.json`, `tests/fixtures/golden.json`
 
 **Interfaces:**
 - Produces: `avg(arr): number|null`, `sum(arr): number`,
@@ -50,7 +123,9 @@ comportamento" depende de o dashboard carregar.
 
 ```js
 import { describe, it, expect } from 'vitest';
-import { top80avg, avg, calcKPIs } from '../../src/lib/math.js';
+import { top80avg, avg, sum, groupAvg, calcKPIs } from '../../src/lib/math.js';
+import vids   from '../fixtures/videos.sample.json' with { type: 'json' };
+import golden from '../fixtures/golden.json'        with { type: 'json' };
 
 describe('top80avg', () => {
   it('descarta os 20% piores e tira a média do resto', () => {
@@ -68,7 +143,67 @@ describe('top80avg', () => {
     expect(top80avg([])).toBeNull();
   });
 });
+
+describe('sum', () => {
+  it('soma ignorando null/NaN', () => {
+    expect(sum([10, null, 20, NaN, 30])).toBe(60);
+  });
+  it('retorna 0 para lista vazia — diferente de avg, que retorna null', () => {
+    expect(sum([])).toBe(0);
+    expect(avg([])).toBeNull();
+  });
+});
+
+describe('groupAvg', () => {
+  it('agrupa por chave e tira a média de cada grupo', () => {
+    const xs = [
+      { channel:'Principal', views24h:100 },
+      { channel:'Principal', views24h:200 },
+      { channel:'Militares', views24h:50  },
+    ];
+    expect(groupAvg(xs, v=>v.channel, v=>v.views24h))
+      .toEqual({ Principal:150, Militares:50 });
+  });
+  it('descarta chave null/vazia e valor não numérico', () => {
+    const xs = [
+      { channel:'',          views24h:100  },   // chave vazia -> fora
+      { channel:null,        views24h:100  },   // chave null  -> fora
+      { channel:'Principal', views24h:null },   // valor null  -> fora
+      { channel:'Principal', views24h:80   },
+    ];
+    expect(groupAvg(xs, v=>v.channel, v=>v.views24h)).toEqual({ Principal:80 });
+  });
+});
+
+describe('calcKPIs', () => {
+  it('devolve exatamente as 10 chaves do contrato do SPEC', () => {
+    expect(Object.keys(calcKPIs(vids)).sort()).toEqual([
+      'avgImpress','avgViews','ctrStudioGeral','ctrStudioTop80','ret30s',
+      'retFinal','retMedia','total','totalImpress','totalViews',
+    ]);
+  });
+
+  // ── TRAVA DO INVARIANTE MAIS PERIGOSO ────────────────────────────────────
+  // ctrStudio e as retenções são frações 0–1 e só viram percentual na
+  // EXIBIÇÃO (fmtPct). Se alguém multiplicar por 100 dentro do cálculo, este
+  // teste falha. É a única defesa automatizada contra o bug de 100×.
+  it('mantém ctrStudio e retenções como fração 0–1, nunca ×100', () => {
+    const k = calcKPIs(vids);
+    for (const campo of ['ctrStudioGeral','ctrStudioTop80','ret30s','retMedia','retFinal']) {
+      expect(k[campo], `${campo} saiu da faixa 0–1`).toBeGreaterThan(0);
+      expect(k[campo], `${campo} parece ter sido multiplicado por 100`).toBeLessThan(1);
+    }
+    expect(k.ctrStudioGeral).toBeCloseTo(0.083, 3);   // ~8,3% na tela
+  });
+
+  it('reproduz o golden congelado na Task 0, campo por campo', () => {
+    expect(calcKPIs(vids)).toEqual(golden.kpis);
+  });
+});
 ```
+
+> O último teste é o que dá sentido à Task 0: compara a implementação nova com a
+> saída do monólito original, não com um número que alguém digitou à mão.
 
 - [ ] **Step 2: Run test to verify it fails**
 
@@ -174,14 +309,45 @@ const vids = [
   { channel:'Militares', quarter:'2025-Q1', videoType:'Short', abTest:false, publishDate:new Date('2025-03-01') },
 ];
 
+// Estado de filtro neutro. Os valores conferem com `index.html` linhas 440 /
+// 226-228 / 556 — ver "Contrato — estado de filtros" no SPEC.md.
+const semFiltro = () => ({
+  channels: new Set(), quarters: new Set(), videoTypes: new Set(),
+  abTest: 'all', dateFrom: null, dateTo: null,
+});
+
 describe('getFiltered', () => {
   it('filtra por canal', () => {
-    const f = { channels:new Set(['Militares']), quarters:new Set(), videoTypes:new Set(), abTest:'all', dateFrom:null, dateTo:null };
-    expect(getFiltered(vids, f).map(v=>v.channel)).toEqual(['Militares']);
+    expect(getFiltered(vids, { ...semFiltro(), channels:new Set(['Militares']) })
+      .map(v=>v.channel)).toEqual(['Militares']);
   });
-  it('filtra por A/B booleano', () => {
-    const f = { channels:new Set(), quarters:new Set(), videoTypes:new Set(), abTest:true, dateFrom:null, dateTo:null };
-    expect(getFiltered(vids, f)).toHaveLength(1);
+
+  it('conjunto vazio não filtra nada', () => {
+    expect(getFiltered(vids, semFiltro())).toHaveLength(2);
+  });
+
+  // ── TRI-ESTADO DO FILTRO A/B: 'all' | true | false ───────────────────────
+  // O campo do VÍDEO é boolean; o do FILTRO é string 'all' OU boolean.
+  // Não existe 'yes'/'no' — 'Sim'/'Não' são só rótulos de botão.
+  it("abTest 'all' devolve os dois", () => {
+    expect(getFiltered(vids, { ...semFiltro(), abTest:'all' })).toHaveLength(2);
+  });
+  it('abTest true devolve só quem participou', () => {
+    expect(getFiltered(vids, { ...semFiltro(), abTest:true })
+      .map(v=>v.channel)).toEqual(['Principal']);
+  });
+  it('abTest false devolve só quem não participou', () => {
+    expect(getFiltered(vids, { ...semFiltro(), abTest:false })
+      .map(v=>v.channel)).toEqual(['Militares']);
+  });
+
+  // Guarda de regressão: a comparação em getFiltered é `!==` estrita contra o
+  // boolean do vídeo. Se alguém "normalizar" o filtro para string, nenhum vídeo
+  // casa e o dashboard esvazia silenciosamente. Este teste documenta a armadilha
+  // e falha se o contrato do filtro for trocado sem ADR.
+  it('string no lugar de boolean descarta tudo (por isso o tipo é boolean)', () => {
+    expect(getFiltered(vids, { ...semFiltro(), abTest:'yes' })).toHaveLength(0);
+    expect(getFiltered(vids, { ...semFiltro(), abTest:'Sim' })).toHaveLength(0);
   });
 });
 ```
@@ -221,6 +387,31 @@ git commit -m "refactor: extrai getFiltered como função pura testada"
 - Consumes: `math.js`, `format.js`, `filters.js`
 - Produces: `CH_COLORS`, `WEEKDAY_ORD` (config); `fetchData(apiUrl): Promise<{videos, subscribers, timestamp}>` com a normalização de datas/tipos do SPEC
 
+> ### Pré-requisito obrigatório das Tasks 4 e 5 — ANTES de desmontar o monólito
+>
+> As Tasks 1 a 3 têm teste automatizado. As Tasks 4 e 5 tocam DOM, canvas e PDF,
+> e são validadas por conferência visual — que exige um "antes" ainda existente.
+> Depois que o `index.html` virar shell modular, o estado anterior não é mais
+> reproduzível: a referência tem de estar em disco antes.
+>
+> - [ ] **P1. Salvar um payload real.** Com o `/exec` devolvendo JSON (ver
+>   "Pré-requisito (fora do TDD)" no topo), gravar a resposta crua em
+>   `tests/fixtures/exec-payload.json`. É o único registro do formato real do
+>   Apps Script; se a fonte mudar (ADR 0001), ele segue valendo como referência.
+> - [ ] **P2. Registrar os KPIs renderizados pelo monólito.** Com o dashboard
+>   atual aberto e **sem filtro aplicado**, anotar em
+>   `docs/backend/baseline-kpis-AAAA-MM-DD.md`: os KPIs do topo exatamente como
+>   aparecem na tela, o texto "Atualizado em ...", o número de linhas da tabela
+>   de ranking e a ordenação inicial (`views24h`, maior primeiro).
+> - [ ] **P3. Repetir com um filtro não trivial** — ex.: canal `Militares` +
+>   A/B = `Sim` + um intervalo de datas — e anotar os mesmos valores. Um único
+>   cenário não detecta erro introduzido na camada de filtros.
+> - [ ] **P4.** Só depois de P1–P3 iniciar o Step 1 abaixo.
+>
+> **Se o backend ainda estiver quebrado, pare aqui.** As Tasks 4 e 5 não têm
+> como ser validadas sem dados reais. As Tasks 0 a 3 seguem normalmente, porque
+> usam fixtures.
+
 - [ ] **Step 1** Mover `API_URL`, `CH_COLORS`, `WEEKDAY_ORD` para `src/config.js`.
 - [ ] **Step 2** Mover `fetchData` (fetch + `.map` de normalização) para `src/data.js`, recebendo `apiUrl` como parâmetro.
 - [ ] **Step 3** No `index.html`, trocar os blocos inline por `<script type="module">` importando config, data, lib e filtros.
@@ -241,6 +432,11 @@ git commit -m "refactor: extrai config e camada de dados; index vira shell modul
 - Create: `src/render.js`
 - Modify: `index.html`
 
+> **Pré-requisito:** vale o mesmo bloco P1–P4 da Task 4. Se a Task 4 foi feita
+> na mesma sessão, o baseline já está gravado e serve aqui; se não, registrar de
+> novo antes de mover qualquer `render`. Sem baseline, "conferir visualmente" não
+> tem contra o que conferir.
+
 - [ ] **Step 1** Mover cada `render<X>Chart` para `src/charts/<x>.js`.
 - [ ] **Step 2** Mover `render`, `renderKPIs`, `renderTable`, `renderSummary` para `src/render.js`.
 - [ ] **Step 3** Conferir visualmente contra o checklist de comportamento.
@@ -256,11 +452,22 @@ git commit -m "refactor: separa gráficos e render em módulos"
 ## Self-Review
 
 - **Cobertura:** matemática, formatação e filtros — as três fontes de erro
-  silencioso que enganam decisão de conteúdo — têm teste. Gráficos e render são
-  validados por checklist visual (DOM/canvas não valem TDD aqui).
+  silencioso que enganam decisão de conteúdo — têm teste. `avg`, `sum`,
+  `top80avg`, `groupAvg` e `calcKPIs` são todos exercitados por assert, não só
+  importados. Gráficos e render são validados por checklist visual (DOM/canvas
+  não valem TDD aqui), agora ancorado num baseline gravado antes da mexida.
+- **Baseline:** a Task 0 congela a saída das funções originais em
+  `tests/fixtures/golden.json`, e as Tasks 1 a 3 têm de reproduzi-lo. Para as
+  Tasks 4 e 5, o bloco P1–P4 exige payload real e KPIs anotados antes de
+  desmontar o monólito. Nenhuma etapa valida contra número digitado à mão.
+- **Invariante das frações:** travado por assert em `calcKPIs` — os cinco campos
+  fracionários têm de ficar em 0–1, então um `×100` acidental no cálculo quebra o
+  teste em vez de virar bug silencioso na tela.
 - **Sem placeholders:** cada task tem código real e comando de teste.
 - **Consistência de tipos:** nomes batem com `SPEC.md` (`views24h`, `ctrStudio`,
-  `retention30s/media/final`, `abTest` booleano).
+  `retention30s/media/final`). `abTest` é **boolean no vídeo** e **tri-estado
+  (`'all' | true | false`) no filtro** — dois tipos, documentados em "Contrato —
+  estado de filtros" e cobertos por guarda de regressão na Task 3.
 
 ## Execution Handoff
 

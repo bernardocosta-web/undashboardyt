@@ -45,7 +45,7 @@ banner "Erro:". Se o `/exec` devolver HTML (página de login do Google), o
 | `retention30s`    | number (fração)  | **0–1**                                                |
 | `retentionMedia`  | number (fração)  | **0–1**                                                |
 | `retentionFinal`  | number (fração)  | **0–1**                                                |
-| `abTest`          | boolean          | participou de teste A/B                                |
+| `abTest`          | boolean          | participou de teste A/B — **boolean**; o filtro homônimo é tri-estado, ver "Contrato — estado de filtros" |
 | `perf`            | object           | `{ <metrica>: "Bom" \| "Médio" \| "Ruim" }` — colore a tabela |
 
 ## Contrato — objeto de inscrito
@@ -57,6 +57,63 @@ banner "Erro:". Se o `/exec` devolver HTML (página de login do Google), o
 | `count`   | number      | (usado no gráfico de inscritos)     |
 
 Hoje vem vazio — ver limitação em "Problemas conhecidos".
+
+## Contrato — estado de filtros
+
+Dois estados independentes. **O ponto que mais engana:** o campo `abTest` existe
+nos dois com **tipos diferentes**.
+
+### Filtros globais (`filters`) — afetam KPIs, gráficos e tabela
+
+| Campo        | Tipo                     | Inicial | Observação                                                    |
+|--------------|--------------------------|---------|---------------------------------------------------------------|
+| `channels`   | `Set<string>`            | vazio   | conjunto vazio = todos (não filtra)                           |
+| `quarters`   | `Set<string>`            | vazio   | vazio = todos                                                 |
+| `videoTypes` | `Set<string>`            | vazio   | vazio = todos                                                 |
+| `abTest`     | `'all' \| true \| false` | `'all'` | **tri-estado: string OU boolean** — ver abaixo                |
+| `dateFrom`   | `Date \| null`           | `null`  | `new Date('AAAA-MM-DD')` → meia-noite **UTC**                 |
+| `dateTo`     | `Date \| null`           | `null`  | `new Date('AAAA-MM-DD' + 'T23:59:59')` → fim do dia **local** |
+
+> A assimetria UTC (`dateFrom`) vs. local (`dateTo`) é o comportamento atual.
+> Preservar na refatoração; corrigir é mudança de comportamento e exige ADR.
+
+### `abTest`: boolean no vídeo, tri-estado no filtro
+
+- **No objeto de vídeo:** `v.abTest` é **boolean** (`true`/`false`).
+- **No estado de filtro:** `filters.abTest` é a string `'all'` **ou** o boolean
+  `true` **ou** o boolean `false`. Não são `'yes'`/`'no'` nem `'Sim'`/`'Não'` —
+  esses rótulos existem só na UI (botões Todos/Sim/Não) e na legenda do resumo.
+
+Origem dos valores, em `index.html`:
+
+```html
+<button onclick="setAB('all')" id="ab-all">Todos</button>
+<button onclick="setAB(true)"  id="ab-sim">Sim</button>
+<button onclick="setAB(false)" id="ab-nao">Não</button>
+```
+
+A cláusula do filtro usa **comparação estrita**:
+
+```js
+if (filters.abTest !== 'all' && v.abTest !== filters.abTest) return false;
+```
+
+> **Invariante:** a união `string | boolean` é proposital e **não** pode ser
+> "normalizada" para strings. Como a comparação é `!==` estrita, trocar o filtro
+> para `'yes'`/`'no'` tornaria `v.abTest !== filters.abTest` sempre verdadeiro e
+> **todo vídeo seria descartado** — tabela e gráficos ficariam vazios, sem erro
+> no console e sem nada quebrado aparentemente. Mudar isso exige ADR.
+
+### Estado exclusivo da tabela de ranking
+
+Independente de `filters`; a tabela aplica os dois em sequência.
+
+| Campo          | Tipo           | Inicial      | Observação                                  |
+|----------------|----------------|--------------|---------------------------------------------|
+| `rankSort`     | string         | `'views24h'` | chave da coluna ordenada                    |
+| `rankDir`      | `-1 \| 1`      | `-1`         | `-1` = maior primeiro; `1` = menor primeiro |
+| `rankDateFrom` | `Date \| null` | `null`       | filtro de data próprio da tabela            |
+| `rankDateTo`   | `Date \| null` | `null`       | `+ 'T23:59:59'`, fim do dia local           |
 
 ## Métricas derivadas
 
