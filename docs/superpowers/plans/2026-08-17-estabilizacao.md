@@ -342,6 +342,33 @@ describe('fmtPct', () => {
 });
 ```
 
+- [ ] **Step 1b: Apurar o mecanismo de arredondamento ANTES de escrever o teste**
+
+Lido no `index.html` e conferido rodando as funções originais: o mecanismo é
+`Number.prototype.toLocaleString('pt-BR', …)` — ou seja `Intl.NumberFormat`, com
+`roundingMode: "halfExpand"` (padrão do Intl). **Não** é `toFixed`. `Math.round`
+aparece só no ramo `< 1000` do `fmtN`.
+
+O teste usa como entrada o **valor real** que o `calcKPIs` produz, não o
+arredondado à mão: `fmtPct(0.08299999999999999)`. Resultado apurado: `'8,3%'`,
+idêntico a `fmtPct(0.083)` — o ruído de ponto flutuante não chega à tela.
+
+**Quirks herdados travados no teste.** Cada um destes é feio e fica assim: esta
+fase é refactor sem mudança de comportamento. Mexer em qualquer um muda número
+na tela e exige ADR.
+
+| Entrada | Saída | Por quê |
+|---|---|---|
+| `fmtN(1_000_000)` | `'1M'` | `fmtN` não define `minimumFractionDigits`; `fmtPct` define. Daí `1M` conviver com `1,5M` na mesma coluna |
+| `fmtN(999_999)` | `'1.000K'` | `999999 < 1e6` cai no ramo K; 999,999 arredonda para 1000, com separador de milhar dentro do K |
+| `fmtN(-2_300_000)` | `'-2.300.000'` | as guardas são `n >= 1e3` / `n >= 1e6`, falsas para negativo — nunca há sufixo |
+| `fmtN(0.5)` | `'1'` | `Math.round` no ramo `< 1000` mata a casa decimal |
+| `fmtN(NaN)` | `'NaN'` | nenhuma das duas testa `isNaN`, só `== null` |
+| `fmtPct(NaN)` | `'NaN%'` | idem |
+| `fmtDateShort(null)` | `TypeError` | não tem guarda de null, diferente de `fmtN`/`fmtPct` |
+| `esc(0)` / `esc(false)` | `''` | a guarda é `if (!s)`, não `if (s == null)` |
+| `esc("' ")` | `"' "` | não escapa aspas simples; inofensivo hoje porque todo atributo gerado usa aspas duplas |
+
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/lib/format.test.js`
@@ -349,8 +376,10 @@ Expected: FAIL — módulo inexistente
 
 - [ ] **Step 3: Write minimal implementation**
 
-Portar `fmtN`, `fmtPct`, `fmtDateShort`, `esc` para `src/lib/format.js`,
-preservando o locale pt-BR.
+Portar `fmtN`, `fmtPct`, `fmtDateShort` (`index.html` 605-617) e `esc`
+(`index.html` 1323-1326) para `src/lib/format.js`, **sem alterar a lógica** —
+só adicionar `export`. Preservar o locale pt-BR. Conferir verbatim como na
+Task 1: normalizando espaços e o `export`, os corpos têm de ser idênticos.
 
 - [ ] **Step 4: Run test to verify it passes**
 
