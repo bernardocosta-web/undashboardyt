@@ -1,0 +1,58 @@
+# Runbook — dashboard quebrado ("Erro:" ao carregar)
+
+O front está saudável: ele carrega, tenta buscar os dados e cai no `catch`,
+mostrando o banner. **A falha é no backend** (o Apps Script `/exec`), não na
+página. Este runbook leva à causa em poucos minutos.
+
+## Passo 1 — abra o `/exec` direto no navegador
+
+Pegue a URL em `index.html` (`const API_URL = 'https://script.google.com/.../exec'`)
+e cole no navegador. O que aparece decide tudo:
+
+### A) Tela de login / "Você precisa de acesso"
+O deployment perdeu o acesso público **ou** a URL mudou.
+Causa mais comum: foi feito *Deploy → New deployment* (gera nova URL) em vez de
+*Manage deployments → editar → nova versão* (mantém a URL).
+
+**Correção:**
+1. No editor do Apps Script → *Deploy → Manage deployments*.
+2. Confirme que existe um deployment do tipo **Web app** com:
+   - *Execute as:* **Me** (o dono da conta/planilha)
+   - *Who has access:* **Anyone**
+3. Se a URL atual difere da que está no `index.html`, ou atualize o `index.html`
+   com a nova URL, ou (melhor) edite o deployment existente publicando uma nova
+   versão para **preservar a URL antiga**.
+4. Reabra o `/exec` — deve devolver JSON.
+
+### B) Um JSON `{"error":"..."}`
+O código do Apps Script está quebrando ao **ler a planilha**. Provável se as abas
+ou colunas mudaram (você reestruturou o "UN Dashboard Proxy" com prefixo `uni`).
+
+**Correção:**
+1. No editor do Apps Script → *Execuções* (Executions) → veja o stack trace da
+   última execução com erro.
+2. Alinhe os nomes de aba/coluna que o script lê com os nomes atuais da planilha,
+   **ou** mantenha um mapeamento explícito no topo do script.
+3. Rode a função de leitura manualmente no editor pra confirmar antes de
+   reimplantar.
+
+### C) `404` / página não encontrada
+O deployment foi arquivado/apagado. Crie um novo Web app deployment (config do
+item A.2) e atualize `API_URL` no `index.html`.
+
+### D) JSON correto, mas `subscribers: []`
+Não é o bug de carregamento — é a limitação conhecida da Brand Account. O
+carregamento em si está OK; se o dashboard ainda mostra "Erro:", volte aos itens
+acima. Para inscritos, ver `docs/decisions/0001`.
+
+## Passo 2 — registre o que achou
+
+Anote no ADR `docs/decisions/0001` qual foi a causa. Isso alimenta a decisão de
+manter o Apps Script ou migrar a fonte de dados — que é a raiz da fragilidade
+(ponto único de falha, difícil de testar, acoplado à sua conta Google).
+
+## Nota
+
+Não dá pra diagnosticar isto de fora: `script.google.com` exige a sua sessão
+Google. Este passo é seu; com o retorno (A/B/C/D + stack trace, se houver), o
+resto do conserto e a decisão de fonte de dados seguem no plano de estabilização.
