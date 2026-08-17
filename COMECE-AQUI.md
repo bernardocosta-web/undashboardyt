@@ -13,7 +13,7 @@ verdade e pode levar algumas sessões — você para e retoma quando quiser.
 | Parte | O que você faz | Onde |
 |---|---|---|
 | 1 | Instala o que falta | Terminal |
-| 2 | Descobre por que quebrou | Navegador |
+| 2 | ~~Descobre por que quebrou~~ — **feito, backend OK** | — |
 | 3 | Monta a pasta do projeto | Terminal |
 | 4 | Abre no VS Code com Claude Code | VS Code |
 | 5 | Executa a refatoração | Claude Code |
@@ -52,10 +52,29 @@ Cada um deve responder um número (ex.: `git version 2.43.0`).
 
 ---
 
-# PARTE 2 — Descobrir por que o dashboard quebrou
+# PARTE 2 — ~~Descobrir por que o dashboard quebrou~~ — JÁ RESOLVIDO
+
+> ## ✅ Esta parte está concluída. Pule para a Parte 3.
+>
+> **Verificado em 17/08/2026: o backend está operacional.** O `/exec` devolve JSON
+> válido, inclusive em janela anônima, e o dashboard público renderiza KPIs,
+> gráficos e tabela.
+>
+> Os erros de console que motivaram a suspeita eram **um aviso do CDN do Tailwind**
+> (`cdn.tailwindcss.com should not be used in production`) e **um erro de extensão
+> do Chrome** — nenhum dos dois da aplicação. A causa da suspeita original não foi
+> confirmada: pode ter sido instabilidade transitória ou o próprio diagnóstico
+> incorreto.
+>
+> **Lição que vale guardar:** vermelho no console não é sinal de aplicação
+> quebrada. O sinal confiável é o banner "Erro:" na tela do dashboard e o `/exec`
+> aberto direto no navegador. CDNs e extensões poluem o console de qualquer site.
+>
+> Os passos abaixo ficam como **procedimento preventivo**, para o caso de o banner
+> "Erro:" aparecer algum dia. Não execute agora — não há nada a consertar.
 
 Nada de programação aqui. São 5 minutos no navegador e o resultado define o
-conserto.
+conserto, **se algum dia houver um**.
 
 - [ ] **2.1** Abra este endereço no navegador:
 
@@ -455,7 +474,7 @@ Isso corre em paralelo e não bloqueia nada acima.
 # Checklist geral
 
 - [ ] Parte 1 — git e node instalados
-- [ ] Parte 2 — descobri por que quebrou (resultado anotado)
+- [x] Parte 2 — backend verificado em 17/08/2026: **operacional**, nada a consertar
 - [ ] Parte 3 — repositório clonado, branch criado, docs no lugar
 - [ ] Parte 4 — VS Code + Claude Code abertos, modo Manual, superpowers ligado
 - [ ] Parte 5 — Tasks 1 a 5 executadas e conferidas

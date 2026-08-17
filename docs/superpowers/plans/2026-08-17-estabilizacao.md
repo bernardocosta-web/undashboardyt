@@ -2,8 +2,15 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Restaurar os dados e migrar o monólito `index.html` para módulos
-testáveis, sem mudar o comportamento visível.
+**Goal:** Migrar o monólito `index.html` para módulos testáveis, sem mudar o
+comportamento visível.
+
+> **Revisão de 17/08/2026.** O objetivo original começava com "restaurar os
+> dados". Isso saiu: o backend foi verificado e está **operacional** — o `/exec`
+> devolve JSON válido e o dashboard público renderiza tudo. Não havia o que
+> restaurar. A causa da suspeita original não foi confirmada (instabilidade
+> transitória ou diagnóstico incorreto; os erros de console eram do CDN do Tailwind
+> e de uma extensão do Chrome).
 
 **Architecture:** O `index.html` de ~1.300 linhas é quebrado em módulos ES por
 responsabilidade (config, lib pura, dados, filtros, gráficos, render). A lógica
@@ -25,16 +32,27 @@ vitest para testes de lógica pura; Node 18+.
 
 ---
 
-## Pré-requisito (fora do TDD): restaurar os dados
+## Pré-requisito: ~~restaurar os dados~~ — RESOLVIDO, não havia falha
 
-Seguir `docs/backend/runbook-diagnostico.md` até o `/exec` devolver JSON válido.
-Registrar a causa no ADR 0001.
+**Verificado em 17/08/2026: o backend está operacional.** O `/exec` devolve JSON
+válido, inclusive em janela anônima, e o dashboard público renderiza KPIs,
+gráficos e tabela. **Nada a restaurar.**
 
-**O que isso bloqueia, e o que não bloqueia:** as **Tasks 0 a 3** rodam sem
-backend — usam a fixture sintética da Task 0. As **Tasks 4 e 5** ficam
-bloqueadas, porque a validação de "mesmo comportamento" é visual e exige o
-dashboard carregando com dados reais (ver o bloco P1–P4 na Task 4). Ou seja: dá
-para começar a refatoração hoje, mas não para terminá-la.
+A suspeita original vinha de erros no console que, reexaminados, eram um aviso do
+CDN do Tailwind e um erro de extensão do Chrome — nenhum da aplicação. **A causa
+da suspeita não foi confirmada:** instabilidade transitória ou diagnóstico
+incorreto, sem evidência para escolher. Nenhuma causa foi inventada. O
+`docs/backend/runbook-diagnostico.md` fica como procedimento preventivo.
+
+**Efeito no plano: nada está bloqueado.** As Tasks 0 a 3 já rodavam com a fixture
+sintética; as Tasks 4 e 5 estão liberadas, porque há dados reais para a
+conferência visual. O bloco P1–P4 da Task 4 **continua obrigatório** — ele nunca
+foi sobre o backend estar de pé, e sim sobre capturar a referência antes de
+desmontar o monólito.
+
+> Uma coisa que o backend saudável **não** resolve: o gráfico 7 (inscritos)
+> continua vazio, por limitação de permissão da Brand Account. Isso é esperado nas
+> duas versões e não conta como regressão. Ver SPEC, "Problemas conhecidos" nº 1.
 
 ---
 
@@ -534,8 +552,8 @@ git commit -m "refactor: extrai getFiltered como função pura testada"
 > Depois que o `index.html` virar shell modular, o estado anterior não é mais
 > reproduzível: a referência tem de estar em disco antes.
 >
-> - [ ] **P1. Salvar um payload real.** Com o `/exec` devolvendo JSON (ver
->   "Pré-requisito (fora do TDD)" no topo), gravar a resposta crua em
+> - [ ] **P1. Salvar um payload real.** O `/exec` está operacional (ver
+>   "Pré-requisito" no topo), então basta gravar a resposta crua em
 >   `tests/fixtures/exec-payload.json`. É o único registro do formato real do
 >   Apps Script; se a fonte mudar (ADR 0001), ele segue valendo como referência.
 > - [ ] **P2. Registrar os KPIs renderizados pelo monólito.** Com o dashboard
@@ -548,9 +566,10 @@ git commit -m "refactor: extrai getFiltered como função pura testada"
 >   cenário não detecta erro introduzido na camada de filtros.
 > - [ ] **P4.** Só depois de P1–P3 iniciar o Step 1 abaixo.
 >
-> **Se o backend ainda estiver quebrado, pare aqui.** As Tasks 4 e 5 não têm
-> como ser validadas sem dados reais. As Tasks 0 a 3 seguem normalmente, porque
-> usam fixtures.
+> **Backend operacional desde a verificação de 17/08/2026** — este bloco está
+> desbloqueado. A regra permanece por outro motivo: se num dia futuro o `/exec`
+> estiver fora, **não** comece as Tasks 4 ou 5, porque não haverá referência para
+> a conferência visual. Nesse caso, use o `exec-payload.json` já versionado.
 
 - [ ] **Step 1** Mover `API_URL`, `CH_COLORS`, `WEEKDAY_ORD` para `src/config.js`.
 - [ ] **Step 2** Mover `fetchData` (fetch + `.map` de normalização) para `src/data.js`, recebendo `apiUrl` como parâmetro.

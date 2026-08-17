@@ -24,10 +24,15 @@ Resposta esperada (JSON):
 }
 ```
 
-Em erro, o backend devolve `{ "error": "mensagem" }` — o front lança e mostra o
-banner "Erro:". Se o `/exec` devolver HTML (página de login do Google), o
-`res.json()` falha e cai no mesmo banner. Ver
-`docs/backend/runbook-diagnostico.md`.
+**Status: operacional.** Verificado em 17/08/2026 — o `/exec` devolve JSON válido,
+inclusive em janela anônima, e o dashboard público renderiza KPIs, gráficos e
+tabela. Versões anteriores deste documento tratavam o backend como quebrado; a
+suspeita não se confirmou e a causa dela permanece indeterminada.
+
+Em erro, o backend devolveria `{ "error": "mensagem" }` — o front lança e mostra o
+banner "Erro:". Se o `/exec` devolvesse HTML (página de login do Google), o
+`res.json()` falharia e cairia no mesmo banner. Para diagnosticar esse cenário
+caso ele apareça algum dia, ver `docs/backend/runbook-diagnostico.md` (preventivo).
 
 ## Contrato — objeto de vídeo
 
@@ -120,7 +125,8 @@ return rankDir * (va < vb ? -1 : va > vb ? 1 : 0);
 | `date`    | string→Date | parseado com `new Date()`           |
 | `count`   | number      | (usado no gráfico de inscritos)     |
 
-Hoje vem vazio — ver limitação em "Problemas conhecidos".
+Hoje o array chega **vazio dentro de um JSON válido** — limitação de permissão da
+Brand Account, não falha de carregamento. Ver "Problemas conhecidos" nº 1.
 
 ## Contrato — estado de filtros
 
@@ -244,7 +250,8 @@ aplica todos.
 5. Views ao longo do tempo (timeline por data de publicação)
 6. Funil de conversão: Impressões → Views 24h → Assistiram 30s → Assistiram até
    o fim (30s e fim estimados por `views24h × retenção`)
-7. Inscritos por canal (vazio hoje)
+7. Inscritos por canal — **vazio hoje por limitação de permissão da Brand
+   Account, não por falha de carregamento.** Ver "Problemas conhecidos" nº 1
 
 **Ranking:** tabela ordenável por views24h, impressions, ctrStudio,
 retention30s/media/final, data; direção asc/desc; filtro de data próprio da
@@ -255,8 +262,23 @@ Exportar PDF (html2canvas → jsPDF, com fatiamento multi-página).
 
 ## Problemas conhecidos
 
-1. **Inscritos vazios** — exigência de propriedade primária da Brand Account na
-   YouTube Analytics API bloqueia leitura via API. Não é bug de front.
+1. **Inscritos vazios — limitação de permissão, NÃO falha de carregamento.** A
+   YouTube Analytics API exige propriedade primária da Brand Account para servir
+   dados de inscritos; a conta usada não tem esse vínculo, então a API responde
+   sem os dados. O array `subscribers` chega **vazio, num JSON válido** — o
+   carregamento é bem-sucedido. O gráfico 7 exibe "Sem dados de inscritos" porque
+   não há o que plotar, não porque algo falhou.
+
+   Consequências de não confundir os dois casos:
+   - **Não é bug de front.** Nenhuma alteração no `index.html`, nos módulos ou na
+     refatoração faz esses dados aparecerem.
+   - **Não é sintoma de backend quebrado.** O `/exec` está operacional; ele
+     entrega `subscribers: []` corretamente.
+   - **Não é regressão da refatoração.** Ao comparar antes/depois nas Tasks 4 e 5,
+     o gráfico 7 vazio é o comportamento **esperado** nas duas versões.
+
+   Solução conhecida: leitura por navegador (Cowork) ou repensar a fonte — ver
+   `docs/decisions/0001`.
 2. **Snapshot único de 24h** — não há série temporal por vídeo (48h/7d/28d/vida).
 3. **Retenção como número, não curva** — sem `elapsedVideoTimeRatio`, não dá pra
    ver onde a audiência abandona.

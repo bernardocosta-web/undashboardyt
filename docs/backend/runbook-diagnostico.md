@@ -1,8 +1,35 @@
-# Runbook — dashboard quebrado ("Erro:" ao carregar)
+# Runbook — diagnóstico do `/exec` (preventivo)
 
-O front está saudável: ele carrega, tenta buscar os dados e cai no `catch`,
-mostrando o banner. **A falha é no backend** (o Apps Script `/exec`), não na
-página. Este runbook leva à causa em poucos minutos.
+> ## ⚠ NÃO HÁ PROBLEMA EM ABERTO
+>
+> **Em 17/08/2026 o backend foi verificado e estava operacional:** o `/exec`
+> devolve JSON válido, inclusive em janela anônima, e o dashboard público
+> renderiza KPIs, gráficos e tabela normalmente.
+>
+> Este runbook é **preventivo**. Use se algum dia o banner "Erro:" aparecer.
+> Não é uma tarefa pendente e não bloqueia nenhuma etapa do plano de
+> estabilização.
+>
+> **Sobre a suspeita original:** a documentação deste repositório afirmava que o
+> backend estava quebrado. Os erros de console que motivaram o diagnóstico eram um
+> aviso do CDN do Tailwind e um erro de extensão do Chrome — nenhum da aplicação.
+> **A causa da suspeita não foi confirmada:** pode ter sido instabilidade
+> transitória do endpoint ou diagnóstico incorreto. Não há evidência que permita
+> escolher, e nenhuma causa foi inventada para fechar a lacuna.
+
+## Quando usar
+
+Se o dashboard mostrar o banner "Erro:" ao carregar. Nesse cenário o front está
+saudável — ele carrega, tenta buscar os dados e cai no `catch`, mostrando o
+banner. A falha estaria no backend (o Apps Script `/exec`), não na página. Os
+passos abaixo levam à causa em poucos minutos.
+
+> **Antes de suspeitar do backend, descarte ruído do navegador.** Avisos do CDN do
+> Tailwind (`cdn.tailwindcss.com should not be used in production`) e erros de
+> extensão do Chrome aparecem no console e **não** são da aplicação. O sinal
+> confiável é o banner "Erro:" na tela e o `/exec` aberto direto no navegador —
+> não a mera presença de vermelho no console. Foi essa confusão que gerou o
+> diagnóstico incorreto de 2026.
 
 ## Passo 1 — abra o `/exec` direto no navegador
 

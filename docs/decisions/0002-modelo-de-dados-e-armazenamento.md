@@ -39,7 +39,16 @@ Estimando ~800 vídeos e 1 ano de histórico diário:
 - **Sem consulta server-side:** impossível pedir "só a curva dos primeiros 28
   dias dos vídeos do Q1" — é ler tudo e filtrar no cliente.
 - **Edição humana quebra o contrato em silêncio:** alguém move uma coluna e o
-  dashboard morre sem aviso. Forte candidato à causa da quebra atual.
+  dashboard morre sem aviso. Risco real e permanente do modelo editável à mão.
+
+> **Nota de 17/08/2026:** a versão original desta linha dizia que essa edição
+> humana era "forte candidato à causa da quebra atual". **Não havia quebra** — o
+> backend foi verificado e está operacional. O risco descrito continua válido como
+> propriedade do Sheets, mas não há incidente que o comprove, e nenhuma causa foi
+> atribuída retroativamente. O restante deste ADR (volume, gargalo de payload,
+> limite de 6 min do Apps Script, ausência de consulta server-side e a cauda longa
+> do conteúdo evergreen) é **estrutural** e independe disso: os números do gargalo
+> valem com o backend funcionando perfeitamente.
 
 ## Opções consideradas
 

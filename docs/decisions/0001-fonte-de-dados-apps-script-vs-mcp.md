@@ -9,11 +9,20 @@ decisão aqui deve ser coerente com a de lá.
 ## Contexto
 
 Todo o dashboard depende de um único Apps Script Web App (`/exec`) que lê uma
-planilha e devolve JSON. Esse desenho é a raiz da fragilidade atual:
+planilha e devolve JSON. Esse desenho é a raiz da fragilidade estrutural:
 
-- **Ponto único de falha** — o dashboard quebrou inteiro por causa do endpoint.
+> **Nota de 17/08/2026:** o backend foi verificado e está **operacional**. A
+> justificativa deste ADR **não depende** de haver uma falha em curso — os pontos
+> abaixo são propriedades do desenho, não sintomas de um incidente. O que muda é o
+> ritmo: não há urgência de conserto, então a migração pode ser planejada em vez
+> de reativa.
+
+- **Ponto único de falha** — qualquer indisponibilidade do endpoint derruba o
+  dashboard inteiro. É risco estrutural: existe pela topologia, tenha ou não se
+  materializado. (Houve suspeita de uma falha em 2026, **não confirmada**.)
 - **Acoplado à conta Google** — deployment, permissões e OAuth vivem numa conta;
-  qualquer mudança de acesso derruba tudo.
+  qualquer mudança de acesso derruba tudo. Um *New deployment* feito por engano no
+  lugar de uma nova versão já basta para trocar a URL.
 - **Difícil de testar** — a lógica de leitura mora no Apps Script, fora do repo.
 - **Inscritos bloqueados** — a leitura via API esbarra na exigência de
   propriedade primária da Brand Account.
@@ -43,11 +52,18 @@ Ao mesmo tempo, já existe infraestrutura própria: um **n8n self-hosted** e um
 
 ## Decisão
 
-_A definir com o Bernardo._ Recomendação inicial: **B**, faseada — primeiro
-restaurar o Apps Script (runbook) para destravar o dashboard **hoje**, depois
-mover a coleta para o n8n de forma que o dashboard passe a ler um JSON estável e
-versionável. Isso resolve o ponto único de falha, destrava inscritos e cria a
-base para as fases de análise avançada e automação.
+_A definir com o Bernardo._ Recomendação inicial: **B**, faseada — mover a coleta
+para o n8n de forma que o dashboard passe a ler um JSON estável e versionável.
+Isso resolve o ponto único de falha, destrava inscritos e cria a base para as
+fases de análise avançada e automação.
+
+**Faseamento revisado em 17/08/2026.** A versão original desta recomendação
+começava por "restaurar o Apps Script para destravar o dashboard hoje". Como o
+backend está operacional, esse passo **não existe**: o Apps Script segue servindo
+enquanto a migração for planejada, e a refatoração para módulos (plano de
+estabilização) já prepara o ponto de troca — `src/data.js`, criado na Task 4, é
+exatamente onde a fonte será substituída. A ordem passa a ser: refatorar primeiro,
+migrar a fonte depois, sem pressão de incidente.
 
 ## Consequências
 

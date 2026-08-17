@@ -6,17 +6,25 @@ prazo, ao elo entre desempenho de vídeo e venda de cursos.
 
 ## Estado
 
-Em estabilização. O dashboard público (`index.html`) está com o backend quebrado
-e o código é um monólito. Este repositório é a base para restaurar os dados e
-migrar para uma estrutura testável, evoluída com o plugin **superpowers**.
+Em estabilização. O **backend está operacional** (verificado em 17/08/2026: o
+`/exec` devolve JSON válido e o dashboard público renderiza tudo). O que precisa
+de trabalho é o código: um monólito de ~1.334 linhas sem testes. Este repositório
+é a base para migrar para uma estrutura testável **sem mudar comportamento**,
+evoluída com o plugin **superpowers**.
+
+> Versões anteriores deste README afirmavam que o backend estava quebrado. A
+> suspeita não se confirmou — os erros de console eram do CDN do Tailwind e de uma
+> extensão do Chrome. A causa da suspeita original permanece indeterminada
+> (instabilidade transitória ou diagnóstico incorreto).
 
 ## Por onde começar
 
 0. **Guia passo a passo do zero** → `COMECE-AQUI.md` ← comece por aqui
-1. **Consertar o carregamento** → `docs/backend/runbook-diagnostico.md`
-2. **Entender o sistema atual** → `SPEC.md` (contrato de dados e features)
-3. **Como trabalhar no repo** → `CLAUDE.md` (constituição e fluxo)
-4. **Plano de estabilização** → `docs/superpowers/plans/2026-08-17-estabilizacao.md`
+1. **Entender o sistema atual** → `SPEC.md` (contrato de dados e features)
+2. **Como trabalhar no repo** → `CLAUDE.md` (constituição e fluxo)
+3. **Plano de estabilização** → `docs/superpowers/plans/2026-08-17-estabilizacao.md`
+4. **Se o carregamento falhar algum dia** → `docs/backend/runbook-diagnostico.md`
+   (preventivo, não há problema em aberto)
 
 ## Estrutura
 
@@ -28,7 +36,7 @@ migrar para uma estrutura testável, evoluída com o plugin **superpowers**.
 ├── index.html               # dashboard (a migrar para src/ — ver plano)
 └── docs/
     ├── backend/
-    │   └── runbook-diagnostico.md      # árvore de decisão do backend quebrado
+    │   └── runbook-diagnostico.md      # diagnóstico preventivo do /exec
     ├── decisions/                       # ADRs — decisões de arquitetura
     │   ├── 0000-template.md
     │   ├── 0001-fonte-de-dados-apps-script-vs-mcp.md
@@ -44,7 +52,7 @@ migrar para uma estrutura testável, evoluída com o plugin **superpowers**.
 
 ## Fases previstas (após estabilizar)
 
-1. **Estabilização** — restaurar dados + refatorar para módulos testados. _(atual)_
+1. **Estabilização** — refatorar para módulos testados, sem mudar comportamento. _(atual)_
 2. **Análise avançada** — curva de retenção por vídeo, benchmark por cohort,
    visão de packaging (thumbnail/título).
 3. **Automação/IA** — digests e alertas de cohort no n8n; resumos por LLM.

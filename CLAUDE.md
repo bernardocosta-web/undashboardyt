@@ -15,10 +15,21 @@ desempenho de vídeo a leads e matrículas — mas isso é fase posterior
 (ver `docs/superpowers/plans/`).
 
 Estado atual: página única `index.html` publicada em GitHub Pages, lendo de um
-Apps Script Web App. **Está quebrada no backend** (ver
-`docs/backend/runbook-diagnostico.md`) e o código é um monólito de ~1.300 linhas.
-O trabalho em curso é estabilizar: restaurar os dados e migrar para uma estrutura
-testável.
+Apps Script Web App. **O backend está operacional** — verificado em 17/08/2026:
+o `/exec` devolve JSON válido, inclusive em janela anônima, e o dashboard público
+renderiza KPIs, gráficos e tabela. O problema real é o código: um monólito de
+~1.334 linhas sem testes. O trabalho em curso é migrar para uma estrutura
+testável, sem mudar comportamento.
+
+> **Histórico, para não repetir o erro:** até 17/08/2026 esta documentação
+> afirmava que o backend estava quebrado. A suspeita veio de erros no console do
+> navegador que, ao serem reexaminados, eram um aviso do CDN do Tailwind e um erro
+> de extensão do Chrome — nenhum dos dois da aplicação. **A causa da suspeita
+> inicial não foi confirmada**: pode ter sido instabilidade transitória do
+> endpoint ou diagnóstico incorreto. Não há evidência para escolher entre as duas,
+> e nenhuma causa foi inventada para preencher a lacuna. O
+> `docs/backend/runbook-diagnostico.md` segue no repo como procedimento
+> preventivo, não como problema em aberto.
 
 ## 2. Tech stack e restrições
 
