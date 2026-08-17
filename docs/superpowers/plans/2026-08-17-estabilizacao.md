@@ -631,7 +631,60 @@ git commit -m "refactor: extrai config e camada de dados; index vira shell modul
 > tem contra o que conferir.
 
 - [ ] **Step 1** Mover cada `render<X>Chart` para `src/charts/<x>.js`.
-- [ ] **Step 2** Mover `render`, `renderKPIs`, `renderTable`, `renderSummary` para `src/render.js`.
+- [ ] **Step 1b** Criar `src/charts/base.js` com a infraestrutura compartilhada:
+      `CHARTS`, os quatro `Chart.defaults`, `TT`, `AX` e `mkChart`. **Não previsto
+      no plano original** — os 7 gráficos dependem dos cinco, e duplicá-los em
+      cada arquivo criaria 7 registros `CHARTS` distintos, quebrando o
+      `destroy()` do `mkChart` e vazando uma instância de Chart por re-render.
+- [ ] **Step 1c** Criar `src/charts/index.js` com `renderCharts(vids, allSubscribers)`.
+      A **ordem** das 7 chamadas é verbatim: `subscribers` vem antes do funil.
+- [ ] **Step 2** Mover `renderKPIs`, `renderSummary`, `renderTable`, `RANK_COLS` e
+      os três helpers de `perf` para `src/render.js`.
+- [ ] **Step 2b** Criar `src/dom.js` com `setText`, `setLoading`, `showBanner` e
+      `hideBanner`. **Não previsto no plano** e obrigatório: `src/render.js` chama
+      `setText` em três funções, e deixá-lo no `index.html` criaria dependência
+      circular (render importa do index, index importa do render).
+
+> ### O problema de estado da Task 5, e a solução adotada
+>
+> Diferente das Tasks 1 a 3, aqui as funções leem **estado mutável** que vive no
+> `index.html` e é alterado pelos handlers: `allVideos`, `allSubscribers`,
+> `filters`, `rankSort`, `rankDir`, `rankDateFrom`, `rankDateTo`.
+>
+> **Decisão:** o `index.html` continua dono das variáveis; os módulos recebem
+> tudo por parâmetro e não leem global nenhuma. As **únicas** mudanças de
+> assinatura permitidas foram quatro:
+>
+> | Função | Antes | Depois |
+> |---|---|---|
+> | `renderKPIs` | lia `allVideos.length` | `(vids, totalGeral)` |
+> | `renderSummary` | lia `filters` | `(vids, filters)` |
+> | `renderTable` | lia 4 globais de ranking | `(vids, tabela)`, desestruturado na 1ª linha |
+> | `renderSubscriberChart` | lia `allSubscribers` | recebe como parâmetro |
+>
+> Nos dois últimos, o **nome do parâmetro foi mantido igual ao da global** de
+> propósito, para o corpo seguir cópia verbatim e a conferência ser trivial.
+>
+> No `index.html` ficam três linhas que juntam tudo:
+>
+> ```js
+> const estado = () => ({ vids: filtrados(), totalGeral: allVideos.length,
+>   filters, allSubscribers, rankSort, rankDir, rankDateFrom, rankDateTo });
+> function render()       { renderAll(estado()); }
+> function renderTabela() { renderTable(filtrados(), { rankSort, rankDir, rankDateFrom, rankDateTo }); }
+> ```
+>
+> `render()` e `renderTabela()` mantêm a assinatura sem argumentos, então os
+> pontos de chamada nos handlers não mudam de forma.
+
+> ### Armadilha do Step 2: import que sai da lista sem o uso sair
+>
+> Ao reescrever a linha de imports do `index.html`, `esc` foi removido da lista
+> mas continuava sendo usado em `fillPanel` (`index.html:494`, geração dos
+> checkboxes). O módulo **passa** no `node --check` — sintaxe válida — e falha só
+> em runtime, ao abrir um dropdown. Conferir por varredura: para cada símbolo
+> usado, ele está importado ou definido localmente?
+
 - [ ] **Step 3** Conferir visualmente contra o checklist de comportamento.
 - [ ] **Step 4: Commit**
 

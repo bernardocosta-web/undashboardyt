@@ -120,7 +120,17 @@ Brutos: `ctrStudioGeral = 0.045148936170212775`,
 
 Filtro: `channels = {Militares}`, `abTest = true`,
 `dateFrom = 2026-03-17T00:00:00.000Z`, `dateTo = 2026-05-22T00:00:00.000Z`
-(exibido como 16/03/2026 → 21/05/2026 no locale local)
+
+> **Para reproduzir na interface, digite `17/03/2026` e `22/05/2026`.**
+>
+> Uma versão anterior desta linha dizia "exibido como 16/03/2026 → 21/05/2026",
+> valor que vinha de `toLocaleDateString` sobre as bordas em UTC: em UTC−3 a
+> meia-noite UTC de 17/03 é 16/03 às 21:00 local, e a exibição recuava um dia.
+> Digitar 16/03 no filtro produz uma janela um dia maior e pode trazer 31 ou 32
+> vídeos em vez de 30 — **não é regressão**, é a borda de data.
+>
+> Se o total não fechar em 30, use os Cenários 2 e 3 como referência: eles não têm
+> filtro de data e por isso são limpos.
 
 | Elemento                | Texto                  |
 |-------------------------|------------------------|
