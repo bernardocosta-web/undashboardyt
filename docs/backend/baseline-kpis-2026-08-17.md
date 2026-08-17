@@ -151,7 +151,10 @@ camada de filtros.
 4. Somar `A/B = Sim` e comparar com o Cenário 3.
 5. Somar o intervalo de datas e comparar com o Cenário 4.
 6. Conferir também, a olho: os 7 gráficos, a ordenação inicial da tabela
-   (`views24h`, maior primeiro), a contagem "N vídeos" e o botão de exportar PDF.
+   (`views24h`, maior primeiro) e a contagem "N vídeos".
+
+> **Não confira "botão de exportar PDF".** Ele não existe — `exportPDF()` é código
+> morto, sem elemento que a chame. Ver SPEC, seção "Features / Extras".
 
 **Divergência em qualquer número = regressão.** O suspeito nº 1 é ter "melhorado"
 uma função pura durante a extração.

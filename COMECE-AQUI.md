@@ -417,7 +417,11 @@ Depois abra `http://localhost:8000` no navegador. Se `python` não existir, use
   - os números de todos os KPIs do topo
   - os 7 gráficos
   - a tabela de ranking, incluindo a ordenação
-  - o botão de exportar PDF
+  - o Modo Apresentação (botão ou tecla `f`)
+
+> **O "botão de exportar PDF" não existe** — a função `exportPDF()` está no
+> código mas nenhum elemento a chama, e o `id="btn-export"` não está no HTML.
+> Não é regressão da refatoração: já era assim antes. Ver SPEC, "Features".
 
 Se algum número mudou, a refatoração introduziu um bug. Diga ao Claude qual
 número está diferente e onde.

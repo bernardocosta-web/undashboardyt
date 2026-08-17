@@ -574,6 +574,40 @@ git commit -m "refactor: extrai getFiltered como função pura testada"
 - [ ] **Step 1** Mover `API_URL`, `CH_COLORS`, `WEEKDAY_ORD` para `src/config.js`.
 - [ ] **Step 2** Mover `fetchData` (fetch + `.map` de normalização) para `src/data.js`, recebendo `apiUrl` como parâmetro.
 - [ ] **Step 3** No `index.html`, trocar os blocos inline por `<script type="module">` importando config, data, lib e filtros.
+
+> ### ⚠ Step 3b — OBRIGATÓRIO: expor os handlers em `window`
+>
+> **Esta etapa não estava no plano original e quebra a página inteira se for
+> esquecida.** Em `<script type="module">` o escopo **não é global**, mas os
+> atributos `on*` do HTML são avaliados no escopo global. Sem expor, todo botão
+> para de funcionar — e **sem erro visível até alguém clicar**.
+>
+> São 9 funções, levantadas por varredura dos atributos `on*` (estáticos e
+> gerados por template):
+>
+> `refreshData`, `togglePresentation`, `toggleDD`, `setAB`, `clearFilters`,
+> `globalDateChanged`, `setRankSort`, `toggleRankDir`, `filterChanged`
+>
+> Duas delas são chamadas de HTML **gerado em runtime**, não do HTML estático —
+> `filterChanged` (`index.html:496`, checkboxes dos dropdowns) e `setRankSort`
+> (`index.html:764`, cabeçalhos da tabela). Uma busca só no HTML estático as
+> perderia.
+>
+> ```js
+> Object.assign(window, { refreshData, togglePresentation, toggleDD, setAB,
+>   clearFilters, globalDateChanged, setRankSort, toggleRankDir, filterChanged });
+> ```
+>
+> **Como conferir:** extrair o bloco do módulo, casar a lista de funções chamadas
+> por `on*` contra as chaves do `Object.assign`, e confirmar que cada uma existe
+> como `function`. Feito por script; a diferença tem de ser vazia.
+
+> ### Outra armadilha do Step 3: `getFiltered` mudou de assinatura
+>
+> A versão pura recebe `(allVideos, filters)`; a antiga não recebia nada. São
+> **5 pontos de chamada** no `index.html` (linhas 623, 684, 690, 696 e 708 da
+> versão original). Deixar um sem atualizar dá `TypeError` só quando aquele
+> caminho é exercitado — a tabela, por exemplo, só quebra ao reordenar.
 - [ ] **Step 4** Abrir o dashboard e conferir visualmente: KPIs, os 7 gráficos, ranking e PDF idênticos à versão atual (checklist de comportamento).
 - [ ] **Step 5: Commit**
 

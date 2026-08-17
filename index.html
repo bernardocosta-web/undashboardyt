@@ -423,14 +423,19 @@
 
   </div><!-- /main -->
 
-  <script>
+  <script type="module">
   // ═══════════════════════════════════════════════════════════════════════════
-  //  CONFIG
+  //  IMPORTS  — Tasks 1 a 4 do plano de estabilização
   // ═══════════════════════════════════════════════════════════════════════════
-  const API_URL = 'https://script.google.com/macros/s/AKfycbz45SsGps__6mDqPXETiTa4h57_Ss_mXYToUeIs_LnzPdSi8djmTNwkxKlm34KbMNnK/exec';
-
-  const CH_COLORS    = { Principal:'#60A5FA', Militares:'#34D399', Superiores:'#FBBF24' };
-  const WEEKDAY_ORD  = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+  // ATENÇÃO: com type="module" este arquivo NÃO abre por duplo clique — o
+  // navegador bloqueia módulos em file:// por CORS. Para ver o dashboard:
+  //     python -m http.server 8000     (ou: npx serve)
+  // e abra http://localhost:8000
+  import { API_URL, CH_COLORS, WEEKDAY_ORD }                from './src/config.js';
+  import { fetchData }                                      from './src/data.js';
+  import { avg, sum, top80avg, groupAvg, calcKPIs }         from './src/lib/math.js';
+  import { fmtN, fmtPct, fmtDateShort, esc }                from './src/lib/format.js';
+  import { getFiltered }                                    from './src/filters.js';
 
   // ═══════════════════════════════════════════════════════════════════════════
   //  STATE
@@ -447,23 +452,15 @@
   // ═══════════════════════════════════════════════════════════════════════════
   //  FETCH
   // ═══════════════════════════════════════════════════════════════════════════
-  async function fetchData() {
+  // O fetch e as duas normalizações vivem em src/data.js. O que fica aqui é a
+  // orquestração de DOM: overlay, banner, timestamp, filtros dinâmicos e render.
+  // A ordem das chamadas e as mensagens de erro são as mesmas de antes.
+  async function loadAndRender() {
     setLoading(true); hideBanner();
     try {
-      const res  = await fetch(API_URL + '?t=' + Date.now());
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      allVideos = (data.videos || []).map(v => ({
-        ...v,
-        publishDate: v.publishDate ? new Date(v.publishDate) : null,
-        videoType:   v.videoType ? v.videoType.trim().replace(/\s+/g, ' ') : v.videoType,
-        perf:        v.perf || {},
-      }));
-      allSubscribers = (data.subscribers || []).map(s => ({
-        ...s,
-        date: s.date ? new Date(s.date) : null,
-      }));
+      const data = await fetchData(API_URL);
+      allVideos      = data.videos;
+      allSubscribers = data.subscribers;
       setText('data-timestamp', 'Atualizado em ' + new Date(data.timestamp).toLocaleString('pt-BR'));
       buildDynamicFilters();
       render();
@@ -477,7 +474,7 @@
   async function refreshData() {
     const btn = document.getElementById('btn-refresh');
     btn.disabled = true; btn.textContent = 'Atualizando…';
-    await fetchData();
+    await loadAndRender();
     btn.disabled = false;
     btn.innerHTML = '<svg class="w-4 h-4 inline mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Atualizar';
   }
@@ -548,79 +545,23 @@
   // ═══════════════════════════════════════════════════════════════════════════
   //  DERIVED
   // ═══════════════════════════════════════════════════════════════════════════
-  function getFiltered() {
-    return allVideos.filter(v => {
-      if (filters.channels.size   && !filters.channels.has(v.channel))     return false;
-      if (filters.quarters.size   && !filters.quarters.has(v.quarter))     return false;
-      if (filters.videoTypes.size && !filters.videoTypes.has(v.videoType)) return false;
-      if (filters.abTest !== 'all' && v.abTest !== filters.abTest)         return false;
-      if (filters.dateFrom && (!v.publishDate || v.publishDate < filters.dateFrom)) return false;
-      if (filters.dateTo   && (!v.publishDate || v.publishDate > filters.dateTo))   return false;
-      return true;
-    });
-  }
+  // getFiltered agora vive em src/filters.js, como função pura que recebe
+  // (allVideos, filters) em vez de ler os globais. Este wrapper existe só para
+  // os pontos de chamada continuarem lendo `filtrados()` sem repetir os dois
+  // argumentos em cinco lugares.
+  const filtrados = () => getFiltered(allVideos, filters);
 
   // ═══════════════════════════════════════════════════════════════════════════
   //  MATH
   // ═══════════════════════════════════════════════════════════════════════════
-  function avg(arr) {
-    const v = arr.filter(x => x != null && !isNaN(x));
-    return v.length ? v.reduce((a,b) => a+b, 0) / v.length : null;
-  }
-  function top80avg(arr) {
-    const v = arr.filter(x => x != null && !isNaN(x)).sort((a,b) => b-a);
-    if (!v.length) return null;
-    return avg(v.slice(0, Math.max(1, Math.floor(v.length * 0.8))));
-  }
-  function sum(arr) { return arr.filter(x => x != null && !isNaN(x)).reduce((a,b) => a+b, 0); }
-  function groupAvg(vids, keyFn, valFn) {
-    const g = {};
-    for (const v of vids) {
-      const k = keyFn(v); if (k == null || k === '') continue;
-      const val = valFn(v); if (val == null || isNaN(val)) continue;
-      if (!g[k]) g[k] = { s:0, n:0 };
-      g[k].s += val; g[k].n++;
-    }
-    return Object.fromEntries(Object.entries(g).map(([k,v]) => [k, v.s/v.n]));
-  }
-
-  function calcKPIs(vids) {
-    return {
-      total:           vids.length,
-      totalViews:      sum(vids.map(v => v.views24h)),
-      avgViews:        avg(vids.map(v => v.views24h)),
-      totalImpress:    sum(vids.map(v => v.impressions)),
-      avgImpress:      avg(vids.map(v => v.impressions)),
-      ctrStudioGeral:  avg(vids.map(v => v.ctrStudio)),
-      ctrStudioTop80:  top80avg(vids.map(v => v.ctrStudio)),
-      ret30s:          avg(vids.map(v => v.retention30s)),
-      retMedia:        avg(vids.map(v => v.retentionMedia)),
-      retFinal:        avg(vids.map(v => v.retentionFinal)),
-    };
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  //  FORMATTERS
-  // ═══════════════════════════════════════════════════════════════════════════
-  function fmtN(n) {
-    if (n == null) return '—';
-    if (n >= 1e6) return (n/1e6).toLocaleString('pt-BR',{maximumFractionDigits:1})+'M';
-    if (n >= 1e3) return (n/1e3).toLocaleString('pt-BR',{maximumFractionDigits:1})+'K';
-    return Math.round(n).toLocaleString('pt-BR');
-  }
-  function fmtPct(f) {
-    if (f == null) return '—';
-    return (f*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
-  }
-  function fmtDateShort(d) {
-    return d.toLocaleDateString('pt-BR'); // DD/MM/YYYY
-  }
+  // MATH e FORMATTERS agora vivem em src/lib/math.js e src/lib/format.js,
+  // importados no topo. Travados por 52 testes; não redefinir aqui.
 
   // ═══════════════════════════════════════════════════════════════════════════
   //  RENDER
   // ═══════════════════════════════════════════════════════════════════════════
   function render() {
-    const vids = getFiltered();
+    const vids = filtrados();
     renderKPIs(vids);
     renderSummary(vids);
     renderTable(vids);
@@ -681,19 +622,19 @@
     const dt = document.getElementById('rank-date-to').value;
     rankDateFrom = df ? new Date(df) : null;
     rankDateTo   = dt ? new Date(dt + 'T23:59:59') : null;
-    renderTable(getFiltered());
+    renderTable(filtrados());
   }
   function clearRankDates() {
     document.getElementById('rank-date-from').value = '';
     document.getElementById('rank-date-to').value   = '';
     rankDateFrom = null; rankDateTo = null;
-    renderTable(getFiltered());
+    renderTable(filtrados());
   }
   function toggleRankDir() {
     rankDir = -rankDir;
     const btn = document.getElementById('btn-rank-dir');
     if (btn) btn.textContent = rankDir === -1 ? '↓ Maior primeiro' : '↑ Menor primeiro';
-    renderTable(getFiltered());
+    renderTable(filtrados());
   }
 
   function setRankSort(col) {
@@ -705,7 +646,7 @@
     if (clicked) clicked.classList.add('active');
     const dirBtn = document.getElementById('btn-rank-dir');
     if (dirBtn) dirBtn.textContent = '↓ Maior primeiro';
-    renderTable(getFiltered());
+    renderTable(filtrados());
   }
 
   const RANK_COLS = [
@@ -1320,15 +1261,40 @@
   function setLoading(on)   { document.getElementById('overlay-loading').style.display = on ? 'flex' : 'none'; }
   function showBanner(msg)  { setText('error-msg', msg); document.getElementById('banner-error').classList.remove('hidden'); }
   function hideBanner()     { document.getElementById('banner-error').classList.add('hidden'); }
-  function esc(s) {
-    if (!s) return '';
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
+  // esc agora vem de src/lib/format.js, importado no topo.
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  HANDLERS GLOBAIS  — obrigatório com type="module"
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Em <script type="module"> o escopo NÃO é global. Os atributos on* do HTML
+  // são avaliados no escopo global, então sem este bloco TODO botão da página
+  // para de funcionar — sem erro visível até alguém clicar.
+  //
+  // Os 9 primeiros são chamados por on* no HTML estático (linhas 133-416) ou em
+  // HTML gerado por template (filterChanged na 496, setRankSort na 764).
+  // Conferido por varredura: são exatamente estes.
+  Object.assign(window, {
+    refreshData,          // onclick, botão Atualizar
+    togglePresentation,   // onclick, botão Apresentar (+ tecla "f")
+    toggleDD,             // onclick, os 3 dropdowns de filtro
+    setAB,                // onclick, os 3 botões A/B
+    clearFilters,         // onclick, Limpar filtros
+    globalDateChanged,    // onchange, os 2 inputs de data
+    setRankSort,          // onclick, 7 botões + cabeçalhos gerados
+    toggleRankDir,        // onclick, botão de direção
+    filterChanged,        // onchange, checkboxes gerados dos dropdowns
+    // exportPDF é CÓDIGO MORTO hoje: está definido, mas nenhum elemento o
+    // chama e o `btn-export` que ele manipula não existe no HTML. Exposto aqui
+    // para que a conversão em módulo não acrescente um SEGUNDO motivo para ele
+    // não funcionar. Continua inalcançável pela interface — comportamento
+    // idêntico ao de antes. Ver relatório da Task 4.
+    exportPDF,
+  });
 
   // ═══════════════════════════════════════════════════════════════════════════
   //  INIT
   // ═══════════════════════════════════════════════════════════════════════════
-  fetchData();
+  loadAndRender();
   </script>
 </body>
 </html>

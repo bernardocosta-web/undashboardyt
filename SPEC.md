@@ -325,8 +325,21 @@ aplica todos.
 retention30s/media/final, data; direção asc/desc; filtro de data próprio da
 tabela. Células coloridas por `perf`.
 
-**Extras:** botão Atualizar (re-fetch com cache-bust), Modo Apresentação,
-Exportar PDF (html2canvas → jsPDF, com fatiamento multi-página).
+**Extras:** botão Atualizar (re-fetch com cache-bust), Modo Apresentação (botão
+ou tecla `f`).
+
+> **Exportar PDF é CÓDIGO MORTO — a função existe, o botão não.** `exportPDF()`
+> está implementada (`index.html:1178`, html2canvas → jsPDF com fatiamento
+> multi-página), mas **nenhum elemento a chama**: não existe `id="btn-export"` no
+> HTML, e o único atalho de teclado registrado liga `f` ao Modo Apresentação.
+> Verificado por varredura em 17/08/2026 — uma única ocorrência da string
+> `btn-export`, dentro da própria função.
+>
+> Consequências: os CDNs de html2canvas e jsPDF (`index.html:10-11`) são
+> carregados para uma funcionalidade inalcançável; e **não faz sentido pedir a
+> conferência do "botão de exportar PDF"** na validação das Tasks 4 e 5, porque
+> não há botão para clicar. Reativar exige adicionar o botão — o que é **feature
+> nova, não refactor**, e portanto fora do escopo da estabilização.
 
 ## Problemas conhecidos
 
