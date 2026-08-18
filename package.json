@@ -1,0 +1,15 @@
+{
+  "name": "un-dashboard-yt",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Dashboard de performance dos canais do Universo Narrado no YouTube",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "baseline": "node scripts/baseline-snapshot.mjs"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.10"
+  }
+}

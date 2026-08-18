@@ -1,0 +1,14 @@
+node_modules/
+coverage/
+.DS_Store
+Thumbs.db
+*.log
+
+# Payload real do /exec — NÃO VERSIONAR.
+# Contém dados comerciais reais dos canais: views, impressões, CTR e retenção
+# por vídeo, com títulos e URLs. O repositório é público (o site sai do branch
+# main via GitHub Pages), e o histórico do git é permanente — uma vez commitado,
+# fica indexável mesmo que o endpoint /exec seja fechado depois.
+# Mantenha-o em disco para trabalhar; a versão versionada é a anonimizada,
+# tests/fixtures/exec-payload-anon.json. Ver tests/fixtures/README.md.
+tests/fixtures/exec-payload.json

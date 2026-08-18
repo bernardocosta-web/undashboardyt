@@ -423,14 +423,21 @@
 
   </div><!-- /main -->
 
-  <script>
+  <script type="module">
   // ═══════════════════════════════════════════════════════════════════════════
-  //  CONFIG
+  //  IMPORTS  — Tasks 1 a 4 do plano de estabilização
   // ═══════════════════════════════════════════════════════════════════════════
-  const API_URL = 'https://script.google.com/macros/s/AKfycbz45SsGps__6mDqPXETiTa4h57_Ss_mXYToUeIs_LnzPdSi8djmTNwkxKlm34KbMNnK/exec';
-
-  const CH_COLORS    = { Principal:'#60A5FA', Militares:'#34D399', Superiores:'#FBBF24' };
-  const WEEKDAY_ORD  = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+  // ATENÇÃO: com type="module" este arquivo NÃO abre por duplo clique — o
+  // navegador bloqueia módulos em file:// por CORS. Para ver o dashboard:
+  //     python -m http.server 8000     (ou: npx serve)
+  // e abra http://localhost:8000
+  import { API_URL }                                        from './src/config.js';
+  import { fetchData }                                      from './src/data.js';
+  import { getFiltered }                                    from './src/filters.js';
+  import { esc }                                            from './src/lib/format.js';
+  import { setText, setLoading, showBanner, hideBanner }     from './src/dom.js';
+  import { renderAll, renderTable }                         from './src/render.js';
+  import { CHARTS }                                         from './src/charts/base.js';
 
   // ═══════════════════════════════════════════════════════════════════════════
   //  STATE
@@ -447,23 +454,15 @@
   // ═══════════════════════════════════════════════════════════════════════════
   //  FETCH
   // ═══════════════════════════════════════════════════════════════════════════
-  async function fetchData() {
+  // O fetch e as duas normalizações vivem em src/data.js. O que fica aqui é a
+  // orquestração de DOM: overlay, banner, timestamp, filtros dinâmicos e render.
+  // A ordem das chamadas e as mensagens de erro são as mesmas de antes.
+  async function loadAndRender() {
     setLoading(true); hideBanner();
     try {
-      const res  = await fetch(API_URL + '?t=' + Date.now());
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      allVideos = (data.videos || []).map(v => ({
-        ...v,
-        publishDate: v.publishDate ? new Date(v.publishDate) : null,
-        videoType:   v.videoType ? v.videoType.trim().replace(/\s+/g, ' ') : v.videoType,
-        perf:        v.perf || {},
-      }));
-      allSubscribers = (data.subscribers || []).map(s => ({
-        ...s,
-        date: s.date ? new Date(s.date) : null,
-      }));
+      const data = await fetchData(API_URL);
+      allVideos      = data.videos;
+      allSubscribers = data.subscribers;
       setText('data-timestamp', 'Atualizado em ' + new Date(data.timestamp).toLocaleString('pt-BR'));
       buildDynamicFilters();
       render();
@@ -477,7 +476,7 @@
   async function refreshData() {
     const btn = document.getElementById('btn-refresh');
     btn.disabled = true; btn.textContent = 'Atualizando…';
-    await fetchData();
+    await loadAndRender();
     btn.disabled = false;
     btn.innerHTML = '<svg class="w-4 h-4 inline mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Atualizar';
   }
@@ -548,152 +547,63 @@
   // ═══════════════════════════════════════════════════════════════════════════
   //  DERIVED
   // ═══════════════════════════════════════════════════════════════════════════
-  function getFiltered() {
-    return allVideos.filter(v => {
-      if (filters.channels.size   && !filters.channels.has(v.channel))     return false;
-      if (filters.quarters.size   && !filters.quarters.has(v.quarter))     return false;
-      if (filters.videoTypes.size && !filters.videoTypes.has(v.videoType)) return false;
-      if (filters.abTest !== 'all' && v.abTest !== filters.abTest)         return false;
-      if (filters.dateFrom && (!v.publishDate || v.publishDate < filters.dateFrom)) return false;
-      if (filters.dateTo   && (!v.publishDate || v.publishDate > filters.dateTo))   return false;
-      return true;
-    });
-  }
+  // getFiltered agora vive em src/filters.js, como função pura que recebe
+  // (allVideos, filters) em vez de ler os globais. Este wrapper existe só para
+  // os pontos de chamada continuarem lendo `filtrados()` sem repetir os dois
+  // argumentos em cinco lugares.
+  const filtrados = () => getFiltered(allVideos, filters);
 
   // ═══════════════════════════════════════════════════════════════════════════
   //  MATH
   // ═══════════════════════════════════════════════════════════════════════════
-  function avg(arr) {
-    const v = arr.filter(x => x != null && !isNaN(x));
-    return v.length ? v.reduce((a,b) => a+b, 0) / v.length : null;
-  }
-  function top80avg(arr) {
-    const v = arr.filter(x => x != null && !isNaN(x)).sort((a,b) => b-a);
-    if (!v.length) return null;
-    return avg(v.slice(0, Math.max(1, Math.floor(v.length * 0.8))));
-  }
-  function sum(arr) { return arr.filter(x => x != null && !isNaN(x)).reduce((a,b) => a+b, 0); }
-  function groupAvg(vids, keyFn, valFn) {
-    const g = {};
-    for (const v of vids) {
-      const k = keyFn(v); if (k == null || k === '') continue;
-      const val = valFn(v); if (val == null || isNaN(val)) continue;
-      if (!g[k]) g[k] = { s:0, n:0 };
-      g[k].s += val; g[k].n++;
-    }
-    return Object.fromEntries(Object.entries(g).map(([k,v]) => [k, v.s/v.n]));
-  }
-
-  function calcKPIs(vids) {
-    return {
-      total:           vids.length,
-      totalViews:      sum(vids.map(v => v.views24h)),
-      avgViews:        avg(vids.map(v => v.views24h)),
-      totalImpress:    sum(vids.map(v => v.impressions)),
-      avgImpress:      avg(vids.map(v => v.impressions)),
-      ctrStudioGeral:  avg(vids.map(v => v.ctrStudio)),
-      ctrStudioTop80:  top80avg(vids.map(v => v.ctrStudio)),
-      ret30s:          avg(vids.map(v => v.retention30s)),
-      retMedia:        avg(vids.map(v => v.retentionMedia)),
-      retFinal:        avg(vids.map(v => v.retentionFinal)),
-    };
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  //  FORMATTERS
-  // ═══════════════════════════════════════════════════════════════════════════
-  function fmtN(n) {
-    if (n == null) return '—';
-    if (n >= 1e6) return (n/1e6).toLocaleString('pt-BR',{maximumFractionDigits:1})+'M';
-    if (n >= 1e3) return (n/1e3).toLocaleString('pt-BR',{maximumFractionDigits:1})+'K';
-    return Math.round(n).toLocaleString('pt-BR');
-  }
-  function fmtPct(f) {
-    if (f == null) return '—';
-    return (f*100).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
-  }
-  function fmtDateShort(d) {
-    return d.toLocaleDateString('pt-BR'); // DD/MM/YYYY
-  }
+  // MATH e FORMATTERS agora vivem em src/lib/math.js e src/lib/format.js,
+  // importados no topo. Travados por 52 testes; não redefinir aqui.
 
   // ═══════════════════════════════════════════════════════════════════════════
   //  RENDER
   // ═══════════════════════════════════════════════════════════════════════════
-  function render() {
-    const vids = getFiltered();
-    renderKPIs(vids);
-    renderSummary(vids);
-    renderTable(vids);
-    renderCharts(vids);
-  }
+  // Estado completo, montado a cada render. O index.html continua sendo o dono
+  // das variáveis mutáveis (os handlers as alteram); os módulos recebem tudo por
+  // parâmetro e não leem global nenhuma.
+  const estado = () => ({
+    vids:           filtrados(),
+    totalGeral:     allVideos.length,
+    filters,
+    allSubscribers,
+    rankSort, rankDir, rankDateFrom, rankDateTo,
+  });
 
-  function renderKPIs(vids) {
-    const k = calcKPIs(vids);
-    setText('kpi-total',            k.total.toLocaleString('pt-BR'));
-    setText('kpi-total-sub',        'de ' + allVideos.length.toLocaleString('pt-BR') + ' no total');
-    setText('kpi-views',            fmtN(k.totalViews));
-    setText('kpi-views-sub',        k.avgViews ? 'Média: ' + fmtN(k.avgViews) + ' / vídeo' : '—');
-    setText('kpi-impressoes-total', fmtN(k.totalImpress));
-    setText('kpi-impressoes-avg',   fmtN(k.avgImpress));
-    setText('kpi-ctr-studio-geral', fmtPct(k.ctrStudioGeral));
-    setText('kpi-ctr-studio-top80', fmtPct(k.ctrStudioTop80));
-    setText('kpi-ret30',            fmtPct(k.ret30s));
-    setText('kpi-ret-media',        fmtPct(k.retMedia));
-    setText('kpi-ret-final',        fmtPct(k.retFinal));
-  }
+  // render() e renderTabela() ficam com a mesma assinatura de antes (sem
+  // argumentos), então os 5 pontos de chamada nos handlers não mudam de forma.
+  function render()      { renderAll(estado()); }
+  function renderTabela() { renderTable(filtrados(), { rankSort, rankDir, rankDateFrom, rankDateTo }); }
 
-  function renderSummary(vids) {
-    const parts = [];
-    if (filters.channels.size)   parts.push([...filters.channels].join(', '));
-    if (filters.quarters.size)   parts.push([...filters.quarters].join(', '));
-    if (filters.videoTypes.size) parts.push([...filters.videoTypes].join(', '));
-    if (filters.abTest !== 'all') parts.push('A/B: ' + (filters.abTest ? 'Sim' : 'Não'));
-    if (filters.dateFrom || filters.dateTo) {
-      const df = filters.dateFrom ? filters.dateFrom.toLocaleDateString('pt-BR') : '…';
-      const dt = filters.dateTo   ? filters.dateTo.toLocaleDateString('pt-BR')   : '…';
-      parts.push('Data: ' + df + ' → ' + dt);
-    }
-    setText('filter-summary', parts.length
-      ? 'Filtros: ' + parts.join(' · ')
-      : 'Mostrando todos os ' + vids.length + ' vídeos');
-  }
+  // renderKPIs -> src/render.js
 
-  function perfClass(p) {
-    if (!p) return '';
-    const l = p.toLowerCase();
-    if (l === 'bom')   return 'perf-bom';
-    if (l === 'médio' || l === 'medio') return 'perf-medio';
-    if (l === 'ruim')  return 'perf-ruim';
-    return '';
-  }
-  function perfDot(p) {
-    if (!p) return '';
-    const l = p.toLowerCase();
-    const cls = l === 'bom' ? 'bom' : (l === 'médio' || l === 'medio') ? 'medio' : l === 'ruim' ? 'ruim' : '';
-    return cls ? `<span class="perf-dot ${cls}"></span>` : '';
-  }
-  function perfCell(val, fmt, perf) {
-    return `<td class="py-2.5 px-3 text-right tabular-nums whitespace-nowrap text-sm ${perfClass(perf)}">${perfDot(perf)}${fmt}</td>`;
-  }
+  // renderSummary -> src/render.js
+
+  // perfClass -> src/render.js
+  // perfDot -> src/render.js
+  // perfCell -> src/render.js
 
   function rankFilterChanged() {
     const df = document.getElementById('rank-date-from').value;
     const dt = document.getElementById('rank-date-to').value;
     rankDateFrom = df ? new Date(df) : null;
     rankDateTo   = dt ? new Date(dt + 'T23:59:59') : null;
-    renderTable(getFiltered());
+    renderTabela();
   }
   function clearRankDates() {
     document.getElementById('rank-date-from').value = '';
     document.getElementById('rank-date-to').value   = '';
     rankDateFrom = null; rankDateTo = null;
-    renderTable(getFiltered());
+    renderTabela();
   }
   function toggleRankDir() {
     rankDir = -rankDir;
     const btn = document.getElementById('btn-rank-dir');
     if (btn) btn.textContent = rankDir === -1 ? '↓ Maior primeiro' : '↑ Menor primeiro';
-    renderTable(getFiltered());
+    renderTabela();
   }
 
   function setRankSort(col) {
@@ -705,449 +615,45 @@
     if (clicked) clicked.classList.add('active');
     const dirBtn = document.getElementById('btn-rank-dir');
     if (dirBtn) dirBtn.textContent = '↓ Maior primeiro';
-    renderTable(getFiltered());
+    renderTabela();
   }
 
-  const RANK_COLS = [
-    { key:'#',             label:'#',          sortKey:null,            align:'left'  },
-    { key:'title',         label:'Título',      sortKey:null,            align:'left'  },
-    { key:'channel',       label:'Canal',       sortKey:'channel',       align:'left'  },
-    { key:'videoType',     label:'Tipo',        sortKey:'videoType',     align:'left'  },
-    { key:'duration',      label:'Duração',     sortKey:'durationSecs',  align:'left'  },
-    { key:'views24h',      label:'Views',       sortKey:'views24h',      align:'right' },
-    { key:'impressions',   label:'Impressões',  sortKey:'impressions',   align:'right' },
-    { key:'ctrStudio',     label:'CTR Studio',  sortKey:'ctrStudio',     align:'right' },
-    { key:'retention30s',  label:'Ret. 30s',    sortKey:'retention30s',  align:'right' },
-    { key:'retentionMedia',label:'Ret. Média',  sortKey:'retentionMedia',align:'right' },
-    { key:'retentionFinal',label:'Ret. Final',  sortKey:'retentionFinal',align:'right' },
-  ];
+  // RANK_COLS -> src/render.js
 
-  function renderTable(vids) {
-    const wrap = document.getElementById('rank-table-wrap');
-
-    // Apply date filter
-    let list = rankDateFrom || rankDateTo
-      ? vids.filter(v => {
-          if (!v.publishDate) return false;
-          if (rankDateFrom && v.publishDate < rankDateFrom) return false;
-          if (rankDateTo   && v.publishDate > rankDateTo)   return false;
-          return true;
-        })
-      : vids;
-
-    // Sort
-    list = [...list].sort((a, b) => {
-      const va = a[rankSort]; const vb = b[rankSort];
-      if (va == null && vb == null) return 0;
-      if (va == null) return 1; if (vb == null) return -1;
-      return rankDir * (va < vb ? -1 : va > vb ? 1 : 0);
-    });
-
-    setText('rank-count', list.length + ' vídeo' + (list.length !== 1 ? 's' : ''));
-
-    if (!list.length) {
-      wrap.innerHTML = '<p class="text-slate-600 text-sm py-4">Nenhum vídeo com os filtros atuais.</p>';
-      return;
-    }
-
-    const thCls = (col) => {
-      let cls = 'pb-2 px-3 text-xs text-slate-600 uppercase tracking-wider';
-      if (col.sortKey) {
-        cls += ' sortable';
-        if (rankSort === col.sortKey) cls += rankDir === -1 ? ' sort-desc' : ' sort-asc';
-      }
-      if (col.align === 'right') cls += ' text-right';
-      return cls;
-    };
-
-    const headers = RANK_COLS.map(col => {
-      const onclick = col.sortKey ? ` onclick="setRankSort('${col.sortKey}')"` : '';
-      return `<th class="${thCls(col)}"${onclick}>${col.label}</th>`;
-    }).join('');
-
-    const rows = list.map((v, i) => {
-      const p = v.perf || {};
-      const titleCell = v.url
-        ? `<a href="${esc(v.url)}" target="_blank" rel="noopener"
-             class="text-blue-400 hover:text-blue-300 underline block truncate max-w-[260px]"
-             title="${esc(v.title)}">${esc(v.title) || 'Ver vídeo'}</a>`
-        : `<span class="text-slate-300 block truncate max-w-[260px]">${esc(v.title)}</span>`;
-      const chBadge = `<span class="text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap"
-        style="background:${CH_COLORS[v.channel]}22;color:${CH_COLORS[v.channel]}">${esc(v.channel)}</span>`;
-      return `<tr class="data-row border-t border-slate-700/60">
-        <td class="py-2.5 px-3 text-slate-500 text-sm">${i+1}</td>
-        <td class="py-2.5 px-3 text-sm">${titleCell}</td>
-        <td class="py-2.5 px-3">${chBadge}</td>
-        <td class="py-2.5 px-3 text-slate-400 text-xs whitespace-nowrap">${esc(v.videoType||'—')}</td>
-        <td class="py-2.5 px-3 text-slate-400 text-xs whitespace-nowrap">${esc(v.duration||'—')}</td>
-        ${perfCell(v.views24h,       fmtN(v.views24h),          p.views)}
-        ${perfCell(v.impressions,    fmtN(v.impressions),        p.impressoes)}
-        ${perfCell(v.ctrStudio,      fmtPct(v.ctrStudio),        p.ctrStudio)}
-        ${perfCell(v.retention30s,   fmtPct(v.retention30s),     p.ret30s)}
-        ${perfCell(v.retentionMedia, fmtPct(v.retentionMedia),   p.retMedia)}
-        ${perfCell(v.retentionFinal, fmtPct(v.retentionFinal),   p.retFinal)}
-      </tr>`;
-    }).join('');
-
-    wrap.innerHTML = `<table class="w-full text-left">
-      <thead class="sticky top-0 bg-slate-800 z-10"><tr>${headers}</tr></thead>
-      <tbody>${rows}</tbody>
-    </table>`;
-  }
+  // renderTable -> src/render.js
 
   // ═══════════════════════════════════════════════════════════════════════════
   //  CHARTS — setup
   // ═══════════════════════════════════════════════════════════════════════════
-  const CHARTS = {};
 
-  Chart.defaults.color         = '#64748b';
-  Chart.defaults.borderColor   = '#1e293b';
-  Chart.defaults.font.family   = 'system-ui, -apple-system, sans-serif';
-  Chart.defaults.font.size     = 12;
 
-  const TT = {                          // shared tooltip style
-    backgroundColor: '#0f172a',
-    titleColor: '#e2e8f0',
-    bodyColor:  '#94a3b8',
-    borderColor:'#334155',
-    borderWidth: 1,
-    padding: 10,
-    cornerRadius: 8,
-    displayColors: true,
-    boxPadding: 4,
-  };
-  const AX = {                          // shared axis style
-    ticks:  { color:'#475569', font:{ size:11 } },
-    grid:   { color:'#1e293b' },
-    border: { color:'#334155' },
-  };
+  // TT -> src/charts/base.js
+  // AX -> src/charts/base.js
 
-  function mkChart(id, config) {
-    if (CHARTS[id]) { CHARTS[id].destroy(); delete CHARTS[id]; }
-    const canvas = document.getElementById(id);
-    const ph = canvas.parentElement.querySelector('.chart-ph');
-    if (ph) ph.style.display = 'none';
-    CHARTS[id] = new Chart(canvas, config);
-  }
+  // mkChart -> src/charts/base.js
 
-  function renderCharts(vids) {
-    renderTypeChart(vids);
-    renderWeekdayChart(vids);
-    renderHourChart(vids);
-    renderABChart(vids);
-    renderTimelineChart(vids);
-    renderSubscriberChart();
-    renderFunnelChart(vids);
-  }
+  // renderCharts -> src/charts/index.js
 
   // ─── 1. Views por Tipo ─────────────────────────────────────────────────────
-  function renderTypeChart(vids) {
-    const map     = groupAvg(vids, v => v.videoType || 'Sem tipo', v => v.views24h);
-    const entries = Object.entries(map).sort((a,b) => b[1]-a[1]).slice(0,12);
-    const labels  = entries.map(([k]) => k);
-    const data    = entries.map(([,v]) => Math.round(v));
-
-    mkChart('chart-type', {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [{
-          data,
-          backgroundColor: '#3b82f660',
-          borderColor: '#60a5fa',
-          borderWidth: 1,
-          borderRadius: 4,
-          borderSkipped: false,
-        }]
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: { ...TT, callbacks: { label: c => '  ' + fmtN(c.raw) + ' views médio' } },
-        },
-        scales: {
-          x: { ...AX, ticks: { ...AX.ticks, callback: v => fmtN(v) } },
-          y: { ...AX },
-        },
-      },
-    });
-  }
+  // renderTypeChart -> src/charts/type.js
 
   // ─── 2. Views por Dia ──────────────────────────────────────────────────────
-  function renderWeekdayChart(vids) {
-    const map    = groupAvg(vids, v => v.weekday, v => v.views24h);
-    const labels = WEEKDAY_ORD.filter(d => map[d] != null);
-    const data   = labels.map(d => Math.round(map[d]));
-
-    const palette = ['#6366f1','#3b82f6','#0ea5e9','#06b6d4','#10b981','#f59e0b','#f97316'];
-
-    mkChart('chart-weekday', {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [{
-          data,
-          borderColor: '#818cf8',
-          backgroundColor: '#818cf820',
-          borderWidth: 2,
-          pointRadius: 5, pointHoverRadius: 7,
-          pointBackgroundColor: labels.map((_,i) => palette[i % palette.length]),
-          pointBorderColor: '#0f172a',
-          tension: 0.35, fill: true,
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: { ...TT, callbacks: { label: c => '  ' + fmtN(c.raw) + ' views médio' } },
-        },
-        scales: {
-          x: { ...AX },
-          y: { ...AX, ticks: { ...AX.ticks, callback: v => fmtN(v) } },
-        },
-      },
-    });
-  }
+  // renderWeekdayChart -> src/charts/weekday.js
 
   // ─── 3. Views por Horário ──────────────────────────────────────────────────
-  function renderHourChart(vids) {
-    const map     = groupAvg(vids, v => v.publishHour, v => v.views24h);
-    const entries = Object.entries(map).sort((a,b) => parseInt(a[0]) - parseInt(b[0]));
-
-    mkChart('chart-hour', {
-      type: 'line',
-      data: {
-        labels: entries.map(([k]) => k),
-        datasets: [{
-          data: entries.map(([,v]) => Math.round(v)),
-          borderColor: '#a78bfa',
-          backgroundColor: '#8b5cf620',
-          borderWidth: 2,
-          pointRadius: 4, pointHoverRadius: 7,
-          pointBackgroundColor: '#a78bfa',
-          pointBorderColor: '#0f172a',
-          tension: 0.35, fill: true,
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: { ...TT, callbacks: { label: c => '  ' + fmtN(c.raw) + ' views médio' } },
-        },
-        scales: {
-          x: { ...AX },
-          y: { ...AX, ticks: { ...AX.ticks, callback: v => fmtN(v) } },
-        },
-      },
-    });
-  }
+  // renderHourChart -> src/charts/hour.js
 
   // ─── 4. A/B Comparativo ────────────────────────────────────────────────────
-  function renderABChart(vids) {
-    const sim = vids.filter(v => v.abTest === true);
-    const nao = vids.filter(v => v.abTest === false);
-    const ph  = document.getElementById('ph-ab');
-
-    if (!sim.length && !nao.length) {
-      if (CHARTS['chart-ab']) { CHARTS['chart-ab'].destroy(); delete CHARTS['chart-ab']; }
-      if (ph) { ph.style.display = 'flex'; ph.textContent = 'Sem dados de A/B nos filtros atuais'; }
-      return;
-    }
-
-    const labels = ['CTR Studio','Ret. 30s','Ret. Média','Ret. Final'];
-    const fields = ['ctrStudio','retention30s','retentionMedia','retentionFinal'];
-    const calcRow = g => fields.map(f => { const a = avg(g.map(v => v[f])); return a != null ? parseFloat((a*100).toFixed(2)) : null; });
-
-    const datasets = [];
-    if (sim.length) datasets.push({ label:'Com A/B ('+sim.length+')', data:calcRow(sim), backgroundColor:'#3b82f660', borderColor:'#60a5fa', borderWidth:1, borderRadius:3 });
-    if (nao.length) datasets.push({ label:'Sem A/B ('+nao.length+')', data:calcRow(nao), backgroundColor:'#f59e0b60', borderColor:'#fbbf24', borderWidth:1, borderRadius:3 });
-
-    mkChart('chart-ab', {
-      type: 'bar',
-      data: { labels, datasets },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { display: true, labels: { color:'#94a3b8', usePointStyle:true, pointStyleWidth:8, font:{size:11} } },
-          tooltip: { ...TT, callbacks: { label: c => '  ' + (c.raw?.toFixed(1) ?? '—') + '%' } },
-        },
-        scales: {
-          x: { ...AX },
-          y: { ...AX, ticks: { ...AX.ticks, callback: v => v + '%' } },
-        },
-      },
-    });
-  }
+  // renderABChart -> src/charts/ab.js
 
   // ─── 5. Timeline ───────────────────────────────────────────────────────────
-  function renderTimelineChart(vids) {
-    const channels = ['Principal','Militares','Superiores'];
-
-    // Collect and sort all unique dates
-    const dateSet = new Set();
-    vids.forEach(v => { if (v.publishDate) dateSet.add(fmtDateShort(v.publishDate)); });
-    const allDates = [...dateSet].sort((a, b) => {
-      const p = s => { const [d,m,y] = s.split('/').map(Number); return new Date(y,m-1,d); };
-      return p(a) - p(b);
-    });
-
-    const activeChannels = channels.filter(ch => vids.some(v => v.channel === ch && v.publishDate));
-
-    const datasets = activeChannels.map(ch => {
-      const chMap = {};
-      vids.filter(v => v.channel === ch).forEach(v => {
-        if (!v.publishDate || v.views24h == null) return;
-        const d = fmtDateShort(v.publishDate);
-        if (!chMap[d]) chMap[d] = [];
-        chMap[d].push(v.views24h);
-      });
-      return {
-        label: ch,
-        data: allDates.map(d => {
-          const vals = chMap[d];
-          return vals ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length) : null;
-        }),
-        borderColor: CH_COLORS[ch],
-        backgroundColor: CH_COLORS[ch] + '18',
-        tension: 0.35, pointRadius: 3, pointHoverRadius: 6,
-        pointBackgroundColor: CH_COLORS[ch],
-        fill: false, spanGaps: false,
-      };
-    });
-
-    mkChart('chart-timeline', {
-      type: 'line',
-      data: { labels: allDates, datasets },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        interaction: { mode:'index', intersect:false },
-        plugins: {
-          legend: { display: true, labels: { color:'#94a3b8', usePointStyle:true, pointStyleWidth:8, font:{size:12} } },
-          tooltip: {
-            ...TT,
-            callbacks: {
-              label: c => c.raw != null ? '  ' + c.dataset.label + ': ' + fmtN(c.raw) + ' views' : null,
-            },
-          },
-        },
-        scales: {
-          x: { ...AX, ticks: { ...AX.ticks, maxTicksLimit:14, maxRotation:45, minRotation:0 } },
-          y: { ...AX, ticks: { ...AX.ticks, callback: v => fmtN(v) } },
-        },
-      },
-    });
-  }
+  // renderTimelineChart -> src/charts/timeline.js
 
   // ─── 6. Funil ──────────────────────────────────────────────────────────────
-  function renderFunnelChart(vids) {
-    const imp   = sum(vids.map(v => v.impressions));
-    const views = sum(vids.map(v => v.views24h));
-    const s30   = sum(vids.filter(v => v.retention30s  != null && v.views24h != null).map(v => Math.round(v.views24h * v.retention30s)));
-    const sfin  = sum(vids.filter(v => v.retentionFinal != null && v.views24h != null).map(v => Math.round(v.views24h * v.retentionFinal)));
-
-    const data   = [imp, views, s30, sfin];
-    const labels = ['Impressões','Views (24h)','Assistiram 30s','Assistiram até o fim'];
-    const colors = ['#6366f1','#3b82f6','#0ea5e9','#06b6d4'];
-    const ref    = imp || 1;
-    const pcts   = data.map(v => imp > 0 ? (v/ref*100).toFixed(1)+'%' : '—');
-
-    mkChart('chart-funnel', {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [{
-          data,
-          backgroundColor: colors.map(c => c + '99'),
-          borderColor: colors,
-          borderWidth: 1, borderRadius: 4, borderSkipped: false,
-        }]
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            ...TT,
-            callbacks: {
-              label: c => {
-                const i = c.dataIndex;
-                return '  ' + fmtN(data[i]) + '   (' + pcts[i] + ' das impressões)';
-              },
-            },
-          },
-        },
-        scales: {
-          x: { ...AX, ticks: { ...AX.ticks, callback: v => fmtN(v) } },
-          y: { ...AX },
-        },
-      },
-    });
-  }
+  // renderFunnelChart -> src/charts/funnel.js
 
   // ─── 7. Inscritos ───────────────────────────────────────────────────────────
-  function renderSubscriberChart() {
-    const ph = document.getElementById('ph-subscribers');
-    if (!allSubscribers.length) {
-      if (CHARTS['chart-subscribers']) { CHARTS['chart-subscribers'].destroy(); delete CHARTS['chart-subscribers']; }
-      if (ph) { ph.style.display = 'flex'; ph.textContent = 'Sem dados de inscritos'; }
-      return;
-    }
-
-    const sorted = [...allSubscribers].filter(s => s.date).sort((a,b) => a.date - b.date);
-    const labels = sorted.map(s => fmtDateShort(s.date));
-
-    const channels = ['Principal','Militares','Superiores'];
-    const keys     = ['principal','militares','superiores'];
-    const datasets = channels
-      .map((ch, i) => {
-        const data = sorted.map(s => s[keys[i]]);
-        if (data.every(d => d == null)) return null;
-        return {
-          label: ch,
-          data,
-          borderColor:       CH_COLORS[ch],
-          backgroundColor:   CH_COLORS[ch] + '18',
-          borderWidth: 2,
-          pointRadius: 4, pointHoverRadius: 7,
-          pointBackgroundColor: CH_COLORS[ch],
-          pointBorderColor: '#0f172a',
-          tension: 0.35, fill: false, spanGaps: true,
-        };
-      })
-      .filter(Boolean);
-
-    if (!datasets.length) {
-      if (ph) { ph.style.display = 'flex'; ph.textContent = 'Sem dados de inscritos'; }
-      return;
-    }
-
-    mkChart('chart-subscribers', {
-      type: 'line',
-      data: { labels, datasets },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: { display: true, labels: { color:'#94a3b8', usePointStyle:true, pointStyleWidth:8, font:{size:11} } },
-          tooltip: {
-            ...TT,
-            callbacks: {
-              label: c => c.raw != null ? '  ' + c.dataset.label + ': ' + fmtN(c.raw) : null,
-            },
-          },
-        },
-        scales: {
-          x: { ...AX, ticks: { ...AX.ticks, maxTicksLimit: 12, maxRotation: 45 } },
-          y: { ...AX, ticks: { ...AX.ticks, callback: v => fmtN(v) } },
-        },
-      },
-    });
-  }
+  // renderSubscriberChart -> src/charts/subscribers.js
 
   // ═══════════════════════════════════════════════════════════════════════════
   //  PRESENTATION MODE
@@ -1316,19 +822,40 @@
   // ═══════════════════════════════════════════════════════════════════════════
   //  UI HELPERS
   // ═══════════════════════════════════════════════════════════════════════════
-  function setText(id, txt) { const el = document.getElementById(id); if (el) el.textContent = txt; }
-  function setLoading(on)   { document.getElementById('overlay-loading').style.display = on ? 'flex' : 'none'; }
-  function showBanner(msg)  { setText('error-msg', msg); document.getElementById('banner-error').classList.remove('hidden'); }
-  function hideBanner()     { document.getElementById('banner-error').classList.add('hidden'); }
-  function esc(s) {
-    if (!s) return '';
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
+  // esc agora vem de src/lib/format.js, importado no topo.
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  //  HANDLERS GLOBAIS  — obrigatório com type="module"
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Em <script type="module"> o escopo NÃO é global. Os atributos on* do HTML
+  // são avaliados no escopo global, então sem este bloco TODO botão da página
+  // para de funcionar — sem erro visível até alguém clicar.
+  //
+  // Os 9 primeiros são chamados por on* no HTML estático (linhas 133-416) ou em
+  // HTML gerado por template (filterChanged na 496, setRankSort na 764).
+  // Conferido por varredura: são exatamente estes.
+  Object.assign(window, {
+    refreshData,          // onclick, botão Atualizar
+    togglePresentation,   // onclick, botão Apresentar (+ tecla "f")
+    toggleDD,             // onclick, os 3 dropdowns de filtro
+    setAB,                // onclick, os 3 botões A/B
+    clearFilters,         // onclick, Limpar filtros
+    globalDateChanged,    // onchange, os 2 inputs de data
+    setRankSort,          // onclick, 7 botões + cabeçalhos gerados
+    toggleRankDir,        // onclick, botão de direção
+    filterChanged,        // onchange, checkboxes gerados dos dropdowns
+    // exportPDF é CÓDIGO MORTO hoje: está definido, mas nenhum elemento o
+    // chama e o `btn-export` que ele manipula não existe no HTML. Exposto aqui
+    // para que a conversão em módulo não acrescente um SEGUNDO motivo para ele
+    // não funcionar. Continua inalcançável pela interface — comportamento
+    // idêntico ao de antes. Ver relatório da Task 4.
+    exportPDF,
+  });
 
   // ═══════════════════════════════════════════════════════════════════════════
   //  INIT
   // ═══════════════════════════════════════════════════════════════════════════
-  fetchData();
+  loadAndRender();
   </script>
 </body>
 </html>
